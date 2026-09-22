@@ -78,6 +78,8 @@ model Product {
   templeLength Int
   frameWidth   Int
   weightGrams  Int            @default(20)
+  modelUrl    String? // one .glb used by every colour of this frame (a colour can still have its own)
+  modelTint   Boolean @default(true) // paint the shared model in each colour
   isNew        Boolean        @default(false)
   isBestseller Boolean        @default(false)
   isFeatured   Boolean        @default(false)

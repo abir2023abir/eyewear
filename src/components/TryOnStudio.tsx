@@ -5,13 +5,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import type { FaceLandmarker as FL } from "@mediapipe/tasks-vision";
-import { buildFrame, buildPhotoFrame, loadGlbFrame, BuiltFrame, LensKind, LENS_LOOK } from "@/lib/frame3d";
+import { buildPhotoFrame, BuiltFrame, LensKind, LENS_LOOK } from "@/lib/frame3d";
 import { fitVerdict, measure, median, yawAmount, LM, L } from "@/lib/face";
 import { FACE_SHAPE_MATCH, FACE_SHAPE_TIPS, FaceShape } from "@/lib/frame-geometry";
 import { cap, ProductDTO } from "@/lib/types";
 import { usd } from "@/lib/money";
 import FrameArt from "./FrameArt";
 import Icon from "./Icon";
+import { buildAnyFrame, sourceFor } from "@/lib/frame-source";
 
 const WASM = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
 const MODEL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
@@ -165,10 +166,8 @@ export default function TryOnStudio({ products, initialSlug, initialVariant }: {
       renderStill();
     };
     const lk = product.category === "sunglasses" && lens !== "sun" && lens !== "photosun" ? lens : lens;
-    const build3d = () => buildFrame(spec, variant.colorHex, variant.accentHex, lk, variant.finish);
-    if (usePhoto) buildPhotoFrame(variant.tryOnImage!, spec).then(put).catch(() => put(build3d()));
-    else if (variant.modelUrl) loadGlbFrame(variant.modelUrl, spec, lk).then(put).catch(() => put(build3d()));
-    else put(build3d());
+    if (usePhoto) buildPhotoFrame(variant.tryOnImage!, spec).then(put).catch(() => buildAnyFrame(sourceFor(product, variant), spec, lk).then(put));
+    else buildAnyFrame(sourceFor(product, variant), spec, lk).then(put);
     return () => {
       cancelled = true;
     };
@@ -546,9 +545,11 @@ export default function TryOnStudio({ products, initialSlug, initialVariant }: {
           <span className="text-xs muted">
             {usePhoto
               ? "The real product photo, shown at true size. Use ▲ ▼ + − on the picture to fine-tune."
-              : variant?.tryOnImage
-                ? "3D frame — turns with your head and shows the arms going back to your ears."
-                : "No try-on photo for this colour yet — showing the 3D frame."}
+              : product.modelUrl || variant?.modelUrl
+                ? "The real 3D model of this frame — turn your head to see it from any angle."
+                : variant?.tryOnImage
+                  ? "3D built from the product photo: the real shape and colours, and the arms go behind your ears."
+                  : "3D frame built from this model’s measurements."}
           </span>
         </div>
 

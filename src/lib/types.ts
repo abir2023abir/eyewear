@@ -30,6 +30,8 @@ export type ProductDTO = {
   templeLength: number;
   frameWidth: number;
   weightGrams: number;
+  modelUrl: string | null;
+  modelTint: boolean;
   isNew: boolean;
   isBestseller: boolean;
   variants: VariantDTO[];
@@ -41,7 +43,7 @@ export function toDTO(p: any): ProductDTO {
     material: p.material, gender: p.gender, faceShapes: p.faceShapes ? p.faceShapes.split(",") : [],
     price: p.price, compareAt: p.compareAt, description: p.description, lensWidth: p.lensWidth,
     lensHeight: p.lensHeight, bridge: p.bridge, templeLength: p.templeLength, frameWidth: p.frameWidth,
-    weightGrams: p.weightGrams, isNew: p.isNew, isBestseller: p.isBestseller,
+    weightGrams: p.weightGrams, modelUrl: p.modelUrl ?? null, modelTint: p.modelTint ?? true, isNew: p.isNew, isBestseller: p.isBestseller,
     variants: (p.variants || []).map((v: any) => ({
       id: v.id, colorName: v.colorName, colorHex: v.colorHex, accentHex: v.accentHex, finish: v.finish ?? "solid", sku: v.sku, stock: v.stock,
       images: safeJson(v.images, []), modelUrl: v.modelUrl, tryOnImage: v.tryOnImage ?? null,

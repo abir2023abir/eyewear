@@ -3,13 +3,14 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-import { buildFrame, loadGlbFrame, BuiltFrame, LensKind } from "@/lib/frame3d";
+import { BuiltFrame, LensKind } from "@/lib/frame3d";
+import { buildAnyFrame, type FrameSource } from "@/lib/frame-source";
 import type { FrameSpec } from "@/lib/frame-geometry";
 
-type Props = { spec: FrameSpec; color: string; accent?: string | null; finish?: string; modelUrl?: string | null; lens?: LensKind };
+type Props = { spec: FrameSpec; source: FrameSource; lens?: LensKind };
 
 /** Drag-to-rotate 360° 3D view of a frame. */
-export default function Viewer360({ spec, color, accent, finish, modelUrl, lens = "clear" }: Props) {
+export default function Viewer360({ spec, source, lens = "clear" }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const [hint, setHint] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -56,9 +57,18 @@ export default function Viewer360({ spec, color, accent, finish, modelUrl, lens 
       if (disposed) return f.dispose();
       frameRef.current = f;
       scene.add(f.group);
+      // frame the whole object, whatever its size (a scanned or traced model can be bigger than a built one)
+      const sphere = new THREE.Box3().setFromObject(f.group).getBoundingSphere(new THREE.Sphere());
+      const vFov = (camera.fov * Math.PI) / 180;
+      const hFov = 2 * Math.atan(Math.tan(vFov / 2) * Math.max(camera.aspect || 1, 0.1));
+      const dist = (sphere.radius / Math.sin(Math.min(vFov, hFov) / 2)) * 1.08;
+      controls.target.copy(sphere.center);
+      camera.position.set(sphere.center.x + dist * 0.33, sphere.center.y + dist * 0.16, sphere.center.z + dist * 0.93);
+      controls.minDistance = dist * 0.55;
+      controls.maxDistance = dist * 2;
+      controls.update();
     };
-    if (modelUrl) loadGlbFrame(modelUrl, spec, lens).then(onFrame).catch(() => onFrame(buildFrame(spec, color, accent, lens, finish)));
-    else onFrame(buildFrame(spec, color, accent, lens, finish));
+    buildAnyFrame(source, spec, lens).then(onFrame);
 
     const resize = () => {
       const w = el.clientWidth, h = el.clientHeight;
@@ -91,7 +101,7 @@ export default function Viewer360({ spec, color, accent, finish, modelUrl, lens 
       renderer.dispose();
       el.removeChild(renderer.domElement);
     };
-  }, [spec, color, accent, finish, modelUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [spec, source.model, source.traced, source.color.color, source.color.accent, source.color.finish, source.tint]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => frameRef.current?.setLens(lens), [lens]);
 

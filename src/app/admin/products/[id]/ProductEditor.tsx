@@ -9,6 +9,7 @@ import { FINISH_PRESETS, swatchBg, type Finish } from "@/lib/finish";
 import type { ProductDTO } from "@/lib/types";
 import TryOnPhotoField from "./TryOnPhotoField";
 import { prepareUpload } from "@/lib/shrink-image";
+import { sourceFor } from "@/lib/frame-source";
 
 const Viewer360 = dynamic(() => import("@/components/Viewer360"), { ssr: false });
 
@@ -18,6 +19,7 @@ type P = Omit<ProductDTO, "variants" | "id"> & { id?: string; active: boolean; i
 const blank: P = {
   slug: "", name: "", modelCode: "", category: "optical", shape: "rectangle", material: "TR90", gender: "unisex", faceShapes: faceShapesFor("rectangle"),
   price: 2900, compareAt: null, description: "", lensWidth: 52, lensHeight: 38, bridge: 18, templeLength: 145, frameWidth: 134, weightGrams: 15,
+  modelUrl: null, modelTint: true,
   isNew: true, isBestseller: false, isFeatured: false, active: true,
   variants: [{ colorName: "Black", colorHex: "#16181d", accentHex: null, finish: "solid", sku: "", stock: 10, images: [], modelUrl: null, tryOnImage: null }],
 };
@@ -167,7 +169,7 @@ export default function ProductEditor({ initial }: { initial: (ProductDTO & { ac
               ["Size", "Copy the numbers printed inside the temple arm, e.g. 52□18-145."],
               ["Where it shows", "Tick “Featured” to show it on the homepage."],
               ["Colours & photos", "One row per colour. Photo 1 folded, photo 2 open, plus a front photo for the try-on."],
-              ["Save", "Press “Save frame”. It appears in the store straight away."],
+              ["Save", "Press “Save frame”. It appears in the store straight away. (Step 5 is only for 3D files.)"],
             ].map(([en, d], i) => (
               <li key={en} className="card-flat bg-white p-4">
                 <div className="step-num !w-8 !h-8 !text-sm">{i + 1}</div>
@@ -373,19 +375,11 @@ export default function ProductEditor({ initial }: { initial: (ProductDTO & { ac
 
                 {/* 3D model */}
                 <details className="rounded-xl border border-[var(--line)] p-4" open={!!v.modelUrl}>
-                  <summary className="cursor-pointer font-semibold text-sm">3D model for try-on (optional)</summary>
+                  <summary className="cursor-pointer font-semibold text-sm">Different 3D model for just this colour (optional)</summary>
                   <div className="grid gap-3 mt-3 text-sm">
                     <p className="text-xs leading-relaxed">
-                      <b>You don’t need this.</b> Every frame already gets a 3D model automatically, made from the size and colour above — it is used in the 360° view and the face try-on.
-                      Only upload a file if your factory or a 3D designer gives you a real model of this exact frame.
+                      Only needed if this one colour was modelled separately. Normally you upload <b>one model for the whole frame</b> in step 5 below, and it is painted in each colour automatically.
                     </p>
-                    <ul className="text-xs muted list-disc pl-5 grid gap-0.5">
-                      <li>File type: <b>.glb</b> only (glTF binary), up to 4 MB — ask your designer to compress it if it is bigger.</li>
-                      <li>Front of the glasses facing the camera (+Z), temples going backwards.</li>
-                      <li>Any unit is fine — it is resized to the “Total width” automatically.</li>
-                      <li>Name the lens parts “lens” so lens colour previews work.</li>
-                      <li>From Blender: File → Export → glTF 2.0 → Format “glTF Binary (.glb)”.</li>
-                    </ul>
                     {v.modelUrl ? (
                       <div className="flex items-center gap-3"><span className="tag tag-ok">3D file uploaded ✓</span><button className="text-[var(--bad)] text-xs font-bold" onClick={() => setV(vi, { modelUrl: null })}>Remove (use automatic 3D)</button></div>
                     ) : (
@@ -415,6 +409,59 @@ export default function ProductEditor({ initial }: { initial: (ProductDTO & { ac
             )}
           </section>
 
+          {/* ---------- 5. 3D model ---------- */}
+          <section className="card p-6">
+            <Step n={5} en="3D model for the try-on (optional)" />
+            <div className="grid lg:grid-cols-2 gap-5">
+              <div className="text-sm leading-relaxed">
+                <p><b>Nothing to do here unless you have a 3D file.</b> Every colour already gets a 3D frame automatically:</p>
+                <ol className="list-decimal pl-5 mt-2 grid gap-1 text-xs muted">
+                  <li>If you uploaded a <b>try-on photo</b>, the real outline of that photo is turned into a 3D frame with the real colours on the front.</li>
+                  <li>If not, a 3D frame is built from the measurements in step 2.</li>
+                </ol>
+                <p className="mt-3">Upload a <b>.glb</b> here only if a 3D designer or your factory made a model of this frame. One model covers <b>all colours</b> — it is painted to match each swatch.</p>
+                <ul className="text-xs muted list-disc pl-5 grid gap-0.5 mt-2">
+                  <li><b>.glb</b> only (glTF binary), up to 4 MB.</li>
+                  <li>Front of the glasses facing forward, temple arms going backwards.</li>
+                  <li>Any size is fine — it is resized to the “Total width” from step 2.</li>
+                  <li>Name the lens parts “lens” so the lens colour previews still work.</li>
+                  <li>From Blender: File → Export → glTF 2.0 → Format “glTF Binary (.glb)”.</li>
+                </ul>
+              </div>
+              <div className="grid gap-3 content-start">
+                {p.modelUrl ? (
+                  <>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="tag tag-ok">3D model uploaded ✓</span>
+                      <button className="text-[var(--bad)] text-xs font-bold" onClick={() => set("modelUrl", null)}>Remove</button>
+                    </div>
+                    <label className="card-flat p-3 flex gap-3 text-sm cursor-pointer">
+                      <input type="checkbox" className="mt-1" checked={p.modelTint} onChange={(e) => set("modelTint", e.target.checked)} />
+                      <span><b>Paint this model in each colour</b><span className="block muted text-xs mt-0.5">Leave ticked so one model covers every colour. Untick if the model already has the right colours and textures baked in.</span></span>
+                    </label>
+                  </>
+                ) : (
+                  <label className="btn btn-outline w-fit cursor-pointer">
+                    {uploading === "pmodel" ? "Uploading…" : "Upload .glb for this frame"}
+                    <input type="file" accept=".glb,model/gltf-binary" className="hidden" onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = "";
+                      if (!file) return;
+                      if (!/\.glb$/i.test(file.name)) return setMsg({ ok: false, text: "Please choose a .glb file." });
+                      setUploading("pmodel");
+                      try { set("modelUrl", await upload(file, "model")); } catch (err: any) { setMsg({ ok: false, text: err.message }); }
+                      setUploading("");
+                    }} />
+                  </label>
+                )}
+                <div className="rounded-xl bg-[var(--sky-2)] p-3 text-xs">
+                  <b>Check it on a face:</b> save first, then open the try-on and switch to “3D model”.
+                  {p.id && p.slug && <> <Link href={`/try-on?p=${p.slug}&v=${v?.id || ""}`} target="_blank" className="text-[var(--blue)] font-bold">Open try-on ↗</Link></>}
+                </div>
+              </div>
+            </div>
+          </section>
+
           <div className="flex justify-end gap-2">
             <button className="btn btn-primary btn-lg" onClick={save} disabled={busy || !!uploading}>{busy ? "Saving…" : "Save frame"}</button>
           </div>
@@ -423,7 +470,7 @@ export default function ProductEditor({ initial }: { initial: (ProductDTO & { ac
         <aside className="card p-4 grid grid-cols-[minmax(0,1fr)] gap-3 xl:sticky xl:top-6 min-w-0">
           <div className="font-bold text-sm">Live preview · {v?.colorName}</div>
           <div className="aspect-[4/3] rounded-xl bg-[var(--sky-2)]">
-            {v && <Viewer360 key={`${p.shape}-${p.lensWidth}-${p.lensHeight}-${p.bridge}-${p.material}-${v.colorHex}-${v.accentHex}-${vFinish}-${v.modelUrl}`} spec={p} color={v.colorHex} accent={v.accentHex} finish={vFinish} modelUrl={v.modelUrl} lens={p.category === "sunglasses" ? "sun" : "clear"} />}
+            {v && <Viewer360 key={`${p.shape}-${p.lensWidth}-${p.lensHeight}-${p.bridge}-${p.material}-${v.colorHex}-${v.accentHex}-${vFinish}-${v.modelUrl}-${p.modelUrl}-${p.modelTint}-${v.tryOnImage}`} spec={p} source={sourceFor(p, { ...v, finish: vFinish })} lens={p.category === "sunglasses" ? "sun" : "clear"} />}
           </div>
           <p className="text-[11px] muted -mt-1">Drag to spin — this is the 3D frame customers see and try on.</p>
           <div className="rounded-xl bg-[var(--sky-2)] aspect-[4/3] grid place-items-center overflow-hidden">

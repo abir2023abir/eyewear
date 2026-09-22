@@ -241,7 +241,58 @@ export function buildFrame(spec: FrameSpec, color: string, accentIn?: string | n
 }
 
 /** Loads an uploaded glTF-binary model and normalises it to the product's frame width (mm). */
-export async function loadGlbFrame(url: string, spec: FrameSpec, lens: LensKind): Promise<BuiltFrame> {
+export type Tint = { color: string; accent?: string | null; finish?: string };
+
+/** Paints every non-lens part of a model in the colour of the chosen swatch (so one model serves all colours). */
+function paintModel(root: THREE.Object3D, tint: Tint, keep: Set<THREE.Material>) {
+  const fade = tint.finish === "gradient" && tint.accent ? tint.accent : null;
+  const top = new THREE.Color(tint.color);
+  const bottom = new THREE.Color(fade || tint.accent || tint.color);
+  const box = new THREE.Box3().setFromObject(root);
+  const made: THREE.Material[] = [];
+  root.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh || keep.has(m.material as THREE.Material)) return;
+    const old = m.material as THREE.MeshStandardMaterial;
+    const mat = new THREE.MeshPhysicalMaterial({
+      color: top,
+      map: null,
+      roughness: 0.3,
+      metalness: old?.metalness != null ? Math.min(0.9, old.metalness) : 0.05,
+      clearcoat: 0.7,
+      clearcoatRoughness: 0.2,
+    });
+    if (fade) {
+      // colour runs top → bottom across the whole model, like a real gradient acetate
+      const pos = m.geometry.attributes.position as THREE.BufferAttribute;
+      const cols = new Float32Array(pos.count * 3);
+      const c = new THREE.Color();
+      const v = new THREE.Vector3();
+      for (let i = 0; i < pos.count; i++) {
+        v.fromBufferAttribute(pos, i);
+        m.localToWorld(v);
+        const t = (box.max.y - v.y) / Math.max(box.max.y - box.min.y, 1e-6);
+        c.copy(top).lerp(bottom, Math.min(1, Math.max(0, (t - 0.2) / 0.65)));
+        cols[i * 3] = c.r; cols[i * 3 + 1] = c.g; cols[i * 3 + 2] = c.b;
+      }
+      m.geometry.setAttribute("color", new THREE.BufferAttribute(cols, 3));
+      mat.vertexColors = true;
+      mat.color.set("#ffffff");
+    } else if (tint.accent && tint.finish !== "gradient") {
+      // two-tone: the upper half (brow) takes the second colour
+      const mid = (box.max.y + box.min.y) / 2 + (box.max.y - box.min.y) * 0.1;
+      const v = new THREE.Vector3();
+      m.getWorldPosition(v);
+      if (v.y > mid) mat.color.set(tint.accent);
+    }
+    m.material = mat;
+    made.push(mat);
+  });
+  return made;
+}
+
+/** Loads an uploaded glTF-binary model, normalises it to the product's frame width (mm) and optionally tints it. */
+export async function loadGlbFrame(url: string, spec: FrameSpec, lens: LensKind, tint?: Tint | null): Promise<BuiltFrame> {
   const gltf = await new GLTFLoader().loadAsync(url);
   const root = gltf.scene;
   const box = new THREE.Box3().setFromObject(root);
@@ -263,6 +314,7 @@ export async function loadGlbFrame(url: string, spec: FrameSpec, lens: LensKind)
       lensMats.push(mat);
     }
   });
+  const painted = tint ? paintModel(root, tint, new Set<THREE.Material>(lensMats)) : [];
   return {
     group,
     setLens: (k) =>
@@ -272,11 +324,14 @@ export async function loadGlbFrame(url: string, spec: FrameSpec, lens: LensKind)
         mat.opacity = look.opacity;
       }),
     setTempleSpread: () => {},
-    dispose: () =>
+    dispose: () => {
+      painted.forEach((m) => m.dispose());
+      lensMats.forEach((m) => m.dispose());
       root.traverse((o) => {
         const m = o as THREE.Mesh;
         if (m.isMesh) m.geometry.dispose();
-      }),
+      });
+    },
   };
 }
 
@@ -308,6 +363,148 @@ export async function buildPhotoFrame(url: string, spec: FrameSpec): Promise<Bui
       geo.dispose();
       mat.dispose();
       tex.dispose();
+    },
+  };
+}
+
+/** Temple arms that can be re-spread to the wearer's head width. Shared by the built and traced frames. */
+function templeMaker(spec: FrameSpec, metal: boolean, mat: THREE.Material, outerRimX: number, y0: number) {
+  const group = new THREE.Group();
+  group.name = "temples";
+  const shape = new THREE.Shape();
+  const tw = metal ? 1.1 : 1.6, th = metal ? 1.6 : 4.2;
+  shape.moveTo(-tw, -th);
+  shape.lineTo(tw, -th);
+  shape.lineTo(tw, th);
+  shape.lineTo(-tw, th);
+  shape.closePath();
+  let geos: THREE.BufferGeometry[] = [];
+  const setSpread = (headHalf: number) => {
+    geos.forEach((g) => g.dispose());
+    geos = [];
+    group.clear();
+    const L = spec.templeLength;
+    const back = Math.max(outerRimX, headHalf + 2.5);
+    for (const side of [1, -1]) {
+      const pts = [
+        new THREE.Vector3(side * outerRimX, y0, -3),
+        new THREE.Vector3(side * (outerRimX + (back - outerRimX) * 0.35), y0, -L * 0.25),
+        new THREE.Vector3(side * back, y0 - 2, -L * 0.55),
+        new THREE.Vector3(side * back, y0 - 5, -L * 0.72),
+        new THREE.Vector3(side * (back - 3), y0 - 18, -L * 0.9),
+        new THREE.Vector3(side * (back - 6), y0 - 32, -L * 0.98),
+      ];
+      const geo = new THREE.ExtrudeGeometry(shape, { steps: 60, bevelEnabled: false, extrudePath: new THREE.CatmullRomCurve3(pts) });
+      geos.push(geo);
+      const m = new THREE.Mesh(geo, mat);
+      m.name = "temple";
+      group.add(m);
+    }
+  };
+  setSpread(spec.frameWidth / 2 - 4);
+  return { group, setSpread, dispose: () => geos.forEach((g) => g.dispose()) };
+}
+
+/**
+ * Photo-traced 3D: takes the cut-out front photo, traces the real outline of the frame and its lens
+ * openings, and extrudes that exact shape into a solid 3D front with the photo mapped onto it —
+ * so the colour and pattern are the real product. Temple arms are added from the measurements.
+ */
+/** Average colour of the solid parts of a cut-out photo — used for the temple arms and edges. */
+function averageColour(img: CanvasImageSource, w: number, h: number): THREE.Color {
+  try {
+    const c = document.createElement("canvas");
+    const W = Math.min(160, w), H = Math.max(1, Math.round((h / w) * W));
+    c.width = W;
+    c.height = H;
+    const ctx = c.getContext("2d", { willReadFrequently: true })!;
+    ctx.drawImage(img, 0, 0, W, H);
+    const px = ctx.getImageData(0, 0, W, H).data;
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let i = 0; i < W * H; i++) {
+      if (px[i * 4 + 3] < 200) continue; // skip background and the see-through lenses
+      r += px[i * 4]; g += px[i * 4 + 1]; b += px[i * 4 + 2]; n++;
+    }
+    if (!n) return new THREE.Color(0x2a2a2a);
+    return new THREE.Color(r / n / 255, g / n / 255, b / n / 255);
+  } catch {
+    return new THREE.Color(0x2a2a2a);
+  }
+}
+
+export async function buildTracedFrame(url: string, spec: FrameSpec, lens: LensKind = "clear"): Promise<BuiltFrame> {
+  const { traceFrame, toMillimetres } = await import("./photo-trace");
+  const traced = await traceFrame(url);
+  const { outer, holes } = toMillimetres(traced, spec.frameWidth);
+  if (outer.length < 8) throw new Error("outline too small");
+
+  const tex = await new THREE.TextureLoader().loadAsync(url);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const metal = spec.material === "Metal" || spec.material === "Titanium";
+  const depth = metal ? 2 : 4.5;
+
+  const shape = new THREE.Shape(outer.map(([x, y]) => new THREE.Vector2(x, y)));
+  for (const h of holes) shape.holes.push(new THREE.Path(h.map(([x, y]) => new THREE.Vector2(x, y))));
+  const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.5, bevelSegments: 2, curveSegments: 6 });
+  geo.translate(0, 0, -depth / 2);
+
+  // map the photo onto the shape: x,y in mm → 0..1 across the picture
+  const half = spec.frameWidth / 2;
+  const topMm = Math.max(...outer.map((p) => p[1])), botMm = Math.min(...outer.map((p) => p[1]));
+  const pos = geo.attributes.position as THREE.BufferAttribute;
+  const uv = new Float32Array(pos.count * 2);
+  for (let i = 0; i < pos.count; i++) {
+    uv[i * 2] = (pos.getX(i) + half) / (half * 2);
+    uv[i * 2 + 1] = (pos.getY(i) - botMm) / Math.max(topMm - botMm, 1e-6);
+  }
+  geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+
+  const frontMat = new THREE.MeshPhysicalMaterial({ map: tex, roughness: 0.35, metalness: metal ? 0.6 : 0.05, clearcoat: 0.6, clearcoatRoughness: 0.25 });
+  const front = new THREE.Mesh(geo, frontMat);
+  const group = new THREE.Group();
+  group.add(front);
+
+  // lenses fill the traced openings, so the lens previews still work
+  const lensMat = makeLensMaterial(lens);
+  const lensGeos: THREE.BufferGeometry[] = [];
+  for (const h of holes) {
+    const g = new THREE.ShapeGeometry(new THREE.Shape(h.map(([x, y]) => new THREE.Vector2(x, y))), 12);
+    lensGeos.push(g);
+    const m = new THREE.Mesh(g, lensMat);
+    m.position.z = depth / 2 - 0.2;
+    m.renderOrder = 3;
+    m.name = "lens";
+    group.add(m);
+  }
+
+  // temple arms in the frame's own colour, taken from the photo itself
+  const edge = averageColour(tex.image as CanvasImageSource, traced.widthPx, traced.heightPx);
+  const sideMat = new THREE.MeshPhysicalMaterial({ color: edge, roughness: 0.35, metalness: metal ? 0.7 : 0.05, clearcoat: 0.5 });
+  const outerX = Math.max(...outer.map((p) => Math.abs(p[0])));
+  const hingeY = topMm - (topMm - botMm) * 0.28;
+  const temples = templeMaker(spec, metal, sideMat, outerX - 1, hingeY);
+  group.add(temples.group);
+
+  return {
+    group,
+    setLens: (k) => {
+      const look = LENS_LOOK[k];
+      lensMat.color.set(look.color);
+      lensMat.opacity = look.opacity;
+      lensMat.sheen = look.sheen ? 1 : 0;
+      lensMat.sheenColor.set(look.sheen || "#ffffff");
+      lensMat.needsUpdate = true;
+    },
+    setTempleSpread: temples.setSpread,
+    dispose: () => {
+      geo.dispose();
+      frontMat.dispose();
+      tex.dispose();
+      lensMat.dispose();
+      sideMat.dispose();
+      lensGeos.forEach((g) => g.dispose());
+      temples.dispose();
     },
   };
 }

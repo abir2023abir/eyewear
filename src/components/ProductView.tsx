@@ -10,6 +10,7 @@ import { Price, Rx, setViewingProduct, useSite, useStore } from "./Providers";
 import { cap, ProductDTO } from "@/lib/types";
 import { usd } from "@/lib/money";
 import type { LensKind } from "@/lib/frame3d";
+import { sourceFor } from "@/lib/frame-source";
 
 const Viewer360 = dynamic(() => import("./Viewer360"), { ssr: false, loading: () => <div className="w-full h-full grid place-items-center muted">Loading 3D…</div> });
 
@@ -90,7 +91,7 @@ export default function ProductView({ p, lenses, initialVariant }: { p: ProductD
         <div className="hero-card aspect-[4/3] overflow-hidden relative">
           <span className="p-sku z-10">{v.sku}</span>
           {tab === "3d" ? (
-            <Viewer360 spec={spec} color={v.colorHex} accent={v.accentHex} finish={v.finish} modelUrl={v.modelUrl} lens={preview} />
+            <Viewer360 spec={spec} source={sourceFor(p, v)} lens={preview} />
           ) : typeof tab === "number" ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={photos[tab]} alt={`${p.name} ${v.colorName} photo ${tab + 1}`} className="w-full h-full object-contain" />

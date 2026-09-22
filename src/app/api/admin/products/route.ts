@@ -27,6 +27,8 @@ const schema = z.object({
   templeLength: z.number().int().min(100).max(170),
   frameWidth: z.number().int().min(90).max(170),
   weightGrams: z.number().int().min(1).max(200),
+  modelUrl: fileUrl.nullable().default(null),
+  modelTint: z.boolean().default(true),
   isNew: z.boolean(),
   isBestseller: z.boolean(),
   isFeatured: z.boolean(),

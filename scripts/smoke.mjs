@@ -282,6 +282,9 @@ async function main() {
       const upRow = await db.upload.findUnique({ where: { id: up.json.url.split("/").pop() } });
       if (upRow) { await rm(`storage/${upRow.fileName}`, { force: true }).catch(() => {}); await db.upload.delete({ where: { id: upRow.id } }).catch(() => {}); }
     }
+    const shared = await req("/api/admin/products", { method: "POST", cookie: A, body: { ...np, id: sp.json.id, modelUrl: up.json?.url || null, modelTint: true, variants: [{ ...np.variants[0], id: sp.json.variantIds[0] }] } });
+    const savedP = await db.product.findUnique({ where: { id: sp.json.id } });
+    ok("one 3D model can be shared by every colour", shared.status === 200 && savedP?.modelUrl === (up.json?.url || null) && savedP?.modelTint === true, shared.json?.error);
     const pg = await req(`/product/${sp.json.slug}`);
     ok("new frame page renders", pg.status === 200 && pg.text.includes("Purple / Pink fade"));
   }
