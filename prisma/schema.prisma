@@ -1,0 +1,279 @@
+// SQLite for local development. For production switch provider to "postgresql"
+// and point DATABASE_URL at your Postgres instance — no other changes needed.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String
+  passwordHash  String
+  role          String         @default("customer") // customer | admin
+  tokenVersion  Int            @default(0) // bump to sign the user out everywhere
+  emailVerified DateTime?
+  authTokens    AuthToken[]
+  createdAt     DateTime       @default(now())
+  addresses     Address[]
+  prescriptions Prescription[]
+  orders        Order[]
+  wishlist      WishlistItem[]
+}
+
+model Address {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String  @default("Home")
+  name      String
+  phone     String
+  line1     String
+  line2     String  @default("")
+  city      String
+  state     String  @default("")
+  postcode  String  @default("")
+  country   String // ISO-3166 alpha-2
+  isDefault Boolean @default(false)
+}
+
+model Prescription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String   @default("My prescription")
+  odSph     String   @default("0.00")
+  odCyl     String   @default("0.00")
+  odAxis    String   @default("")
+  osSph     String   @default("0.00")
+  osCyl     String   @default("0.00")
+  osAxis    String   @default("")
+  add       String   @default("")
+  pd        String   @default("")
+  pdRight   String   @default("")
+  pdLeft    String   @default("")
+  uploadId  String?
+  createdAt DateTime @default(now())
+}
+
+model Product {
+  id           String         @id @default(cuid())
+  slug         String         @unique
+  name         String
+  modelCode    String
+  category     String // optical | sunglasses
+  shape        String // rectangle | square | round | oval | cat-eye | aviator | wayfarer | browline | geometric
+  material     String // TR90 | Acetate | Metal | Titanium
+  gender       String // unisex | men | women | kids
+  faceShapes   String // comma list: oval,round,square,heart,oblong,diamond
+  price        Int // USD cents
+  compareAt    Int?
+  description  String
+  lensWidth    Int // mm
+  lensHeight   Int
+  bridge       Int
+  templeLength Int
+  frameWidth   Int
+  weightGrams  Int            @default(20)
+  isNew        Boolean        @default(false)
+  isBestseller Boolean        @default(false)
+  isFeatured   Boolean        @default(false)
+  active       Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  variants     Variant[]
+  wishlistedBy WishlistItem[]
+}
+
+model Variant {
+  id         String  @id @default(cuid())
+  productId  String
+  product    Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  colorName  String
+  colorHex   String
+  accentHex  String? // second colour: browline top (two-tone) or bottom of the fade (gradient)
+  finish     String  @default("solid") // solid | twotone | gradient
+  sku        String  @unique
+  stock      Int     @default(0)
+  images     String  @default("[]") // JSON array of public upload URLs; empty = generated artwork
+  modelUrl   String? // uploaded .glb for try-on; null = procedural 3D frame
+  tryOnImage String? // front photo with the background removed (PNG) for the photo try-on
+  sortOrder  Int     @default(0)
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+}
+
+model LensOption {
+  id          String  @id @default(cuid())
+  kind        String // type | coating
+  code        String  @unique // clear | ar | bluecut | photosun | none ...
+  name        String
+  description String
+  price       Int // USD cents
+  sortOrder   Int     @default(0)
+  active      Boolean @default(true)
+}
+
+model Upload {
+  id        String   @id @default(cuid())
+  kind      String // prescription | payment-proof | model | image | label
+  fileName  String
+  mime      String
+  size      Int
+  isPublic  Boolean  @default(false)
+  userId    String?
+  createdAt DateTime @default(now())
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  number          String      @unique
+  accessToken     String      @unique // lets guests view their own order
+  userId          String?
+  user            User?       @relation(fields: [userId], references: [id])
+  email           String
+  name            String
+  phone           String
+  line1           String
+  line2           String      @default("")
+  city            String
+  state           String      @default("")
+  postcode        String      @default("")
+  country         String
+  subtotal        Int
+  bundleDiscount  Int         @default(0)
+  lensTotal       Int         @default(0)
+  shipping        Int
+  adjustment      Int         @default(0) // manual +/- (cents), e.g. extra discount set by admin
+  total           Int
+  source          String      @default("web") // web | quote | manual
+  displayCurrency String      @default("USD")
+  fxRate          Float       @default(1)
+  status          String      @default("pending_payment") // pending_payment | paid | processing | shipped | delivered | cancelled
+  paymentMethod   String // paypal | xtransfer
+  paymentStatus   String      @default("unpaid") // unpaid | awaiting_verification | paid | refunded
+  paypalOrderId   String?
+  paypalCaptureId String?
+  proofUploadId   String?
+  dhlProductCode  String      @default("P")
+  dhlServiceName  String      @default("DHL Express Worldwide")
+  shippingEstimate Boolean    @default(false)
+  trackingNumber  String?
+  labelUploadId   String?
+  quoteId         String?
+  conversationId  String? // chat thread where the order is completed
+  customsId       String      @default("") // tax / ID number some countries require for DHL customs
+  deliveryDaysMin Int         @default(0)
+  deliveryDaysMax Int         @default(0)
+  paidAt          DateTime?
+  notes           String      @default("")
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  items           OrderItem[]
+}
+
+model OrderItem {
+  id                 String  @id @default(cuid())
+  orderId            String
+  order              Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId          String
+  variantId          String
+  name               String
+  colorName          String
+  sku                String
+  qty                Int
+  unitPrice          Int
+  lensName           String  @default("Frame only")
+  lensPrice          Int     @default(0)
+  coatings           String  @default("")
+  prescription       String  @default("") // JSON snapshot
+  prescriptionFileId String?
+}
+
+model Conversation {
+  id                String    @id @default(cuid())
+  visitorToken      String    @unique
+  userId            String?
+  name              String    @default("")
+  email             String    @default("")
+  status            String    @default("open")
+  unreadForSeller   Int       @default(0)
+  unreadForCustomer Int       @default(0)
+  lastMessageAt     DateTime  @default(now())
+  offlineAlertAt    DateTime?
+  createdAt         DateTime  @default(now())
+  messages          Message[]
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         String // customer | seller | system
+  kind           String       @default("text") // text | product | quote
+  body           String       @default("")
+  payload        String       @default("") // JSON
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now()) @updatedAt
+
+  @@index([conversationId, createdAt])
+}
+
+model Quote {
+  id             String   @id @default(cuid())
+  token          String   @unique
+  conversationId String
+  items          String // JSON: [{variantId, qty, lensCode}]
+  country        String
+  shipping       Int
+  subtotal       Int
+  total          Int
+  status         String   @default("open") // open | paid | expired
+  createdAt      DateTime @default(now())
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  excerpt   String
+  body      String // light markdown: paragraphs, ## headings, - lists
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Subscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+model Setting {
+  key   String @id
+  value String
+}
+
+/** One-time links: password reset and email verification. Only a SHA-256 hash of the token is stored. */
+model AuthToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose   String // reset | verify
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}

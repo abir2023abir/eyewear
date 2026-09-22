@@ -1,0 +1,14 @@
+node_modules
+.next
+.env
+storage/
+prisma/*.db
+prisma/*.db-journal
+next-env.d.ts
+*.tsbuildinfo
+
+# local only — never commit
+backups/
+*.db
+*.db-journal
+.claude/
