@@ -4,6 +4,7 @@ import BrandLogo from "./BrandLogo";
 import Icon from "./Icon";
 import { useSite } from "./Providers";
 import { usd } from "@/lib/money";
+import { prepareUpload } from "@/lib/shrink-image";
 
 export type Bank = { beneficiary: string; bank: string; account: string; swift: string; note: string };
 type Method = "paypal" | "xtransfer";
@@ -161,8 +162,10 @@ function BankTransfer({ number, token, total, bank, onDone }: { number: string; 
     if (!f) return;
     setBusy(true);
     setErr("");
+    let file: File;
+    try { file = await prepareUpload(f); } catch (e: any) { setBusy(false); return setErr(e.message); }
     const fd = new FormData();
-    fd.append("file", f);
+    fd.append("file", file);
     fd.append("token", token);
     fd.append("reference", ref);
     const r = await fetch(`/api/orders/${encodeURIComponent(number)}/proof`, { method: "POST", body: fd });

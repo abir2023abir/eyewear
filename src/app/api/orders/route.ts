@@ -71,7 +71,7 @@ export async function POST(req: Request) {
   }
   const uploadIds = items.map((i) => i.rxUploadId).filter(Boolean) as string[];
   if (uploadIds.length) {
-    const ups = await db.upload.findMany({ where: { id: { in: uploadIds }, kind: "prescription" } });
+    const ups = await db.upload.findMany({ where: { id: { in: uploadIds }, kind: "prescription" }, select: { id: true } });
     if (ups.length !== new Set(uploadIds).size) return NextResponse.json({ error: "Please re-upload your prescription photo." }, { status: 400 });
   }
 

@@ -8,7 +8,7 @@ export default async function Customers({ searchParams }: { searchParams: Promis
   const users = await db.user.findMany({
     where: {
       ...(role ? { role } : {}),
-      ...(q ? { OR: [{ email: { contains: q } }, { name: { contains: q } }] } : {}),
+      ...(q ? { OR: [{ email: { contains: q, mode: "insensitive" } }, { name: { contains: q, mode: "insensitive" } }] } : {}),
     },
     orderBy: { createdAt: "desc" },
     take: 200,

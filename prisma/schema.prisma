@@ -1,11 +1,10 @@
-// SQLite for local development. For production switch provider to "postgresql"
-// and point DATABASE_URL at your Postgres instance — no other changes needed.
+// PostgreSQL everywhere: Vercel Prisma Postgres in production, `npx prisma dev` (or any Postgres) locally.
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -135,6 +134,7 @@ model Upload {
   size      Int
   isPublic  Boolean  @default(false)
   userId    String?
+  data      Bytes? // the file itself — kept in the database so it survives redeploys (no disk on Vercel)
   createdAt DateTime @default(now())
 }
 

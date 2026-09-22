@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   if (!p.success) return NextResponse.json({ error: "Invalid prescription" }, { status: 400 });
   const { id, uploadId, ...data } = p.data;
   if (uploadId) {
-    const up = await db.upload.findFirst({ where: { id: uploadId, kind: "prescription", OR: [{ userId: s.uid }, { userId: null }] } });
+    const up = await db.upload.findFirst({ where: { id: uploadId, kind: "prescription", OR: [{ userId: s.uid }, { userId: null }] }, select: { id: true, userId: true } });
     if (!up) return NextResponse.json({ error: "Upload not found" }, { status: 400 });
     if (!up.userId) await db.upload.update({ where: { id: up.id }, data: { userId: s.uid } });
   }

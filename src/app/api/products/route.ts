@@ -10,7 +10,7 @@ export async function GET(req: Request) {
     where: {
       active: true,
       ...(ids.length ? { id: { in: ids } } : {}),
-      ...(q ? { OR: [{ name: { contains: q } }, { modelCode: { contains: q } }] } : {}),
+      ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { modelCode: { contains: q, mode: "insensitive" } }] } : {}),
     },
     include: { variants: { orderBy: { sortOrder: "asc" } } },
     take: ids.length ? 100 : 20,

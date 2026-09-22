@@ -51,7 +51,7 @@ export default async function Shop({ searchParams }: { searchParams: Promise<SP>
   const PER = 24;
 
   const and: Prisma.ProductWhereInput[] = [{ active: true }];
-  if (q) and.push({ OR: [{ name: { contains: q } }, { modelCode: { contains: q } }, { shape: { contains: q } }, { material: { contains: q } }, { description: { contains: q } }, { variants: { some: { OR: [{ colorName: { contains: q } }, { sku: { contains: q } }] } } }] });
+  if (q) and.push({ OR: [{ name: { contains: q, mode: "insensitive" } }, { modelCode: { contains: q, mode: "insensitive" } }, { shape: { contains: q, mode: "insensitive" } }, { material: { contains: q, mode: "insensitive" } }, { description: { contains: q, mode: "insensitive" } }, { variants: { some: { OR: [{ colorName: { contains: q, mode: "insensitive" } }, { sku: { contains: q, mode: "insensitive" } }] } } }] });
   if (category) and.push({ category });
   if (shapes.length) and.push({ shape: { in: shapes } });
   if (materials.length) and.push({ material: { in: materials } });
@@ -61,7 +61,7 @@ export default async function Shop({ searchParams }: { searchParams: Promise<SP>
   if (pr) and.push({ price: { gte: pr[1], lte: pr[2] } });
   if (colors.length) {
     const words = colors.flatMap((c) => COLOR_FAMILIES[c]?.words || []);
-    if (words.length) and.push({ variants: { some: { OR: words.map((w) => ({ colorName: { contains: w } })) } } });
+    if (words.length) and.push({ variants: { some: { OR: words.map((w) => ({ colorName: { contains: w, mode: "insensitive" } })) } } });
   }
   const where: Prisma.ProductWhereInput = { AND: and };
   const orderBy: Prisma.ProductOrderByWithRelationInput[] =

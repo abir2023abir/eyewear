@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import type { Rx } from "./Providers";
 import { useStore } from "./Providers";
 import Icon from "./Icon";
+import { prepareUpload } from "@/lib/shrink-image";
 
 const range = (from: number, to: number, step: number) => {
   const out: string[] = [];
@@ -136,8 +137,10 @@ export function RxUpload({ onDone, current }: { onDone: (id: string, name: strin
     if (!f) return;
     setBusy(true);
     setErr("");
+    let file: File;
+    try { file = await prepareUpload(f); } catch (e: any) { setBusy(false); return setErr(e.message); }
     const fd = new FormData();
-    fd.append("file", f);
+    fd.append("file", file);
     fd.append("kind", "prescription");
     const r = await fetch("/api/upload", { method: "POST", body: fd });
     const j = await r.json().catch(() => ({}));
@@ -149,7 +152,7 @@ export function RxUpload({ onDone, current }: { onDone: (id: string, name: strin
     <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[var(--line)] rounded-2xl p-6 cursor-pointer hover:border-[var(--blue)] text-center">
       <Icon name="upload" size={26} className="text-[var(--blue)]" />
       <span className="font-bold text-sm">{busy ? "Uploading…" : current ? `Uploaded: ${current}` : "Upload a photo or PDF of your prescription"}</span>
-      <span className="text-xs muted">JPG, PNG, WEBP, HEIC or PDF · max 10 MB · our optician checks it before cutting</span>
+      <span className="text-xs muted">JPG, PNG, WEBP, HEIC or PDF · max 4 MB · our optician checks it before cutting</span>
       <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => pick(e.target.files?.[0])} />
       {err && <span className="err">{err}</span>}
     </label>

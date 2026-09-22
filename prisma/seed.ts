@@ -110,12 +110,16 @@ Switch lens previews in the virtual try-on studio to see how each looks on your 
 
 async function main() {
   const adminEmail = (process.env.ADMIN_EMAIL || "admin@example.com").toLowerCase();
-  const adminPass = process.env.ADMIN_PASSWORD || "ChangeMe123!";
-  await db.user.upsert({
-    where: { email: adminEmail },
-    update: { role: "admin" },
-    create: { email: adminEmail, name: "Store Admin", role: "admin", passwordHash: await bcrypt.hash(adminPass, 11) },
-  });
+  const adminPass = process.env.ADMIN_PASSWORD || "";
+  const exists = await db.user.findUnique({ where: { email: adminEmail } });
+  if (exists) {
+    if (exists.role !== "admin") await db.user.update({ where: { id: exists.id }, data: { role: "admin" } });
+  } else if (!adminPass || adminPass === "ChangeMe123!" || adminPass.length < 8) {
+    console.warn("⚠ No admin created: set ADMIN_EMAIL and ADMIN_PASSWORD (8+ characters, not the example) and deploy again.");
+  } else {
+    await db.user.create({ data: { email: adminEmail, name: "Store Admin", role: "admin", passwordHash: await bcrypt.hash(adminPass, 11) } });
+    console.log(`Admin account created for ${adminEmail}.`);
+  }
 
   for (const l of LENSES) await db.lensOption.upsert({ where: { code: l.code }, update: l, create: l });
   for (const p of POSTS) await db.post.upsert({ where: { slug: p.slug }, update: p, create: p });

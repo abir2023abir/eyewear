@@ -10,7 +10,7 @@ export default async function Products({ searchParams }: { searchParams: Promise
   const products = await db.product.findMany({
     where: {
       ...(show === "archived" ? { active: false } : show === "all" ? {} : { active: true }),
-      ...(q ? { OR: [{ name: { contains: q } }, { modelCode: { contains: q } }, { variants: { some: { sku: { contains: q } } } }] } : {}),
+      ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { modelCode: { contains: q, mode: "insensitive" } }, { variants: { some: { sku: { contains: q, mode: "insensitive" } } } }] } : {}),
     },
     include: { variants: { orderBy: { sortOrder: "asc" } } },
     orderBy: { createdAt: "desc" },

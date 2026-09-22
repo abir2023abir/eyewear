@@ -8,6 +8,7 @@ import { FACE_SHAPES, SHAPES, faceShapesFor } from "@/lib/frame-geometry";
 import { FINISH_PRESETS, swatchBg, type Finish } from "@/lib/finish";
 import type { ProductDTO } from "@/lib/types";
 import TryOnPhotoField from "./TryOnPhotoField";
+import { prepareUpload } from "@/lib/shrink-image";
 
 const Viewer360 = dynamic(() => import("@/components/Viewer360"), { ssr: false });
 
@@ -52,7 +53,8 @@ export default function ProductEditor({ initial }: { initial: (ProductDTO & { ac
   const setV = (i: number, patch: Partial<V>) => setP((x) => ({ ...x, variants: x.variants.map((vv, j) => (j === i ? { ...vv, ...patch } : vv)) }));
   const num = (k: keyof P) => (e: React.ChangeEvent<HTMLInputElement>) => set(k, Number(e.target.value) as never);
 
-  const upload = async (file: File, kind: "image" | "model") => {
+  const upload = async (original: File, kind: "image" | "model") => {
+    const file = await prepareUpload(original); // shrinks big photos; refuses files over 4 MB
     const fd = new FormData();
     fd.append("file", file);
     fd.append("kind", kind);
@@ -69,7 +71,6 @@ export default function ProductEditor({ initial }: { initial: (ProductDTO & { ac
     try {
       const urls: string[] = [];
       for (const f of files) {
-        if (f.size > 8 << 20) throw new Error(`${f.name} is larger than 8 MB — please make it smaller.`);
         urls.push(await upload(f, "image"));
       }
       setP((x) => ({
@@ -361,7 +362,7 @@ export default function ProductEditor({ initial }: { initial: (ProductDTO & { ac
                     )}
                   </div>
                   <div className="mt-3 rounded-xl bg-[var(--sky-2)] p-3 text-xs leading-relaxed">
-                    <b>Photo tips:</b> JPG, PNG or WebP · up to 8 MB · white or light background · frame in the middle · at least 1200 px wide · all photos the same size (4:3 looks best).
+                    <b>Photo tips:</b> JPG, PNG or WebP (big photos are made smaller automatically) · white or light background · frame in the middle · at least 1200 px wide · all photos the same size (4:3 looks best).
                     <br />Photo 1 = frame <b>folded</b> (shown first on the card). Photo 2 = frame <b>open</b> (the “Open” button). Use the ◀ ▶ arrows to change the order.
                     <br /><span className="muted">No photo yet? The store shows a drawing of the frame in this colour until you add one.</span>
                   </div>
@@ -379,7 +380,7 @@ export default function ProductEditor({ initial }: { initial: (ProductDTO & { ac
                       Only upload a file if your factory or a 3D designer gives you a real model of this exact frame.
                     </p>
                     <ul className="text-xs muted list-disc pl-5 grid gap-0.5">
-                      <li>File type: <b>.glb</b> only (glTF binary), up to 25 MB.</li>
+                      <li>File type: <b>.glb</b> only (glTF binary), up to 4 MB — ask your designer to compress it if it is bigger.</li>
                       <li>Front of the glasses facing the camera (+Z), temples going backwards.</li>
                       <li>Any unit is fine — it is resized to the “Total width” automatically.</li>
                       <li>Name the lens parts “lens” so lens colour previews work.</li>

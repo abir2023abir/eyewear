@@ -9,7 +9,10 @@
     "db:push": "prisma db push",
     "db:seed": "tsx --env-file=.env prisma/seed.ts",
     "setup": "prisma db push && tsx --env-file=.env prisma/seed.ts",
-    "test:smoke": "node --env-file=.env scripts/smoke.mjs"
+    "test:smoke": "node --env-file=.env scripts/smoke.mjs",
+    "vercel-build": "prisma generate && prisma db push --skip-generate && tsx prisma/seed.ts && next build",
+    "postinstall": "prisma generate",
+    "db:dev": "prisma dev --name eyewear --detach"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.14",

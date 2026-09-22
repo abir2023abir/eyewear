@@ -3,9 +3,10 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
+import { authKey } from "./auth-secret";
 
 const COOKIE = "session";
-const secret = () => new TextEncoder().encode(process.env.AUTH_SECRET || "dev-secret-change-me");
+const secret = authKey;
 
 export type Session = { uid: string; role: string; name: string; email: string };
 

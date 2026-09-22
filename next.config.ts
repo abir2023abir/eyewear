@@ -20,6 +20,8 @@ const CSP = [
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@prisma/client", "nodemailer", "pdfkit"],
+  // pdfkit reads its built-in fonts from disk at runtime; make sure Vercel bundles them
+  outputFileTracingIncludes: { "/**": ["./node_modules/pdfkit/js/data/**"] },
   poweredByHeader: false,
   experimental: { serverActions: { bodySizeLimit: "25mb" } },
   async headers() {

@@ -12,7 +12,7 @@ export default async function Orders({ searchParams }: { searchParams: SP }) {
   const where: Prisma.OrderWhereInput = {
     ...(payment ? { paymentStatus: payment } : {}),
     ...(status ? { status } : {}),
-    ...(q ? { OR: [{ number: { contains: q } }, { email: { contains: q } }, { name: { contains: q } }, { trackingNumber: { contains: q } }] } : {}),
+    ...(q ? { OR: [{ number: { contains: q, mode: "insensitive" } }, { email: { contains: q, mode: "insensitive" } }, { name: { contains: q, mode: "insensitive" } }, { trackingNumber: { contains: q, mode: "insensitive" } }] } : {}),
   };
   const p = Math.max(1, Number(page) || 1);
   const [orders, total] = await Promise.all([

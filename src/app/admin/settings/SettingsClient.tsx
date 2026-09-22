@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Settings } from "@/lib/settings-shared";
 import { bankDetailsReal } from "@/lib/settings-shared";
 import { COUNTRIES } from "@/lib/countries";
+import { prepareUpload } from "@/lib/shrink-image";
 
 type Tab = "store" | "branding" | "home" | "pricing" | "payments" | "shipping" | "chat" | "email" | "marketing" | "policies" | "account";
 const TABS: [Tab, string][] = [
@@ -338,8 +339,10 @@ function LogoField({ label, hint, value, onChange, onError }: { label: string; h
   const upload = async (f?: File) => {
     if (!f) return;
     setBusy(true);
+    let file: File;
+    try { file = await prepareUpload(f); } catch (e: any) { setBusy(false); return onError(e.message); }
     const fd = new FormData();
-    fd.append("file", f);
+    fd.append("file", file);
     fd.append("kind", "image");
     const r = await fetch("/api/admin/upload", { method: "POST", body: fd });
     const j = await r.json().catch(() => ({}));

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { authSecretProblem } from "@/lib/auth-secret";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { createSession, hashPassword } from "@/lib/auth";
@@ -13,6 +14,8 @@ const schema = z.object({
 });
 
 export async function POST(req: Request) {
+  const secretProblem = authSecretProblem();
+  if (secretProblem) return NextResponse.json({ error: "Sign-in is switched off until the store owner sets AUTH_SECRET on the server." }, { status: 503 });
   if (!(await rateLimit("register", 5, 60 * 60_000))) return NextResponse.json({ error: "Too many sign-ups from this network. Try later." }, { status: 429 });
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message || "Invalid details" }, { status: 400 });

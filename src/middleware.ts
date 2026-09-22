@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { authKey } from "@/lib/auth-secret";
 
-const secret = () => new TextEncoder().encode(process.env.AUTH_SECRET || "dev-secret-change-me");
+const secret = authKey;
 const UNSAFE = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 /**

@@ -13,7 +13,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const s = await getSession();
     if (!s || (s.role !== "admin" && (!u.userId || s.uid !== u.userId))) return new Response("Not found", { status: 404 });
   }
-  const buf = await readFile(path.join(STORAGE_DIR, path.basename(u.fileName))).catch(() => null);
+  const buf = u.data ?? (await readFile(path.join(STORAGE_DIR, path.basename(u.fileName))).catch(() => null));
   if (!buf) return new Response("Not found", { status: 404 });
   return new Response(new Uint8Array(buf), {
     headers: {
