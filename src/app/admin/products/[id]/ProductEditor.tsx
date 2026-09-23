@@ -429,7 +429,7 @@ export default function ProductEditor({ initial }: { initial: (ProductDTO & { ac
                 </ol>
                 <p className="mt-3">Upload a <b>.glb</b> here only if a 3D designer or your factory made a model of this frame. One model covers <b>all colours</b> — it is painted to match each swatch.</p>
                 <ul className="text-xs muted list-disc pl-5 grid gap-0.5 mt-2">
-                  <li><b>.glb</b> only (glTF binary). Big files (up to 150 MB) are made smaller automatically before upload, so they load fast for customers.</li>
+                  <li><b>.glb</b> only (glTF binary). Big files (up to 150 MB) are made smaller automatically before upload, so they load fast for customers — textures are kept at <b>2K</b> (2048 px).</li>
                   <li>Front of the glasses facing forward, temple arms going backwards.</li>
                   <li>Any size is fine — it is resized to the “Total width” from step 2.</li>
                   <li>Name the lens parts “lens” so the lens colour previews still work.</li>
