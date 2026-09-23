@@ -20,9 +20,21 @@ export async function POST(req: Request) {
   if (!p.success) return NextResponse.json({ error: "Invalid prescription" }, { status: 400 });
   const { id, uploadId, ...data } = p.data;
   if (uploadId) {
-    const up = await db.upload.findFirst({ where: { id: uploadId, kind: "prescription", OR: [{ userId: s.uid }, { userId: null }] }, select: { id: true, userId: true } });
+    // an upload with no owner can only be claimed if it is fresh (just uploaded by this person before
+    // signing in) and nobody else has used it — so a stray id can never be used to read someone else’s file
+    const fresh = new Date(Date.now() - 24 * 60 * 60_000);
+    const up = await db.upload.findFirst({
+      where: { id: uploadId, kind: "prescription", OR: [{ userId: s.uid }, { userId: null, createdAt: { gte: fresh } }] },
+      select: { id: true, userId: true },
+    });
     if (!up) return NextResponse.json({ error: "Upload not found" }, { status: 400 });
-    if (!up.userId) await db.upload.update({ where: { id: up.id }, data: { userId: s.uid } });
+    if (!up.userId) {
+      const usedByOther =
+        (await db.prescription.findFirst({ where: { uploadId: up.id, userId: { not: s.uid } }, select: { id: true } })) ||
+        (await db.orderItem.findFirst({ where: { prescriptionFileId: up.id, order: { userId: { not: s.uid } } }, select: { id: true } }));
+      if (usedByOther) return NextResponse.json({ error: "Upload not found" }, { status: 400 });
+      await db.upload.update({ where: { id: up.id }, data: { userId: s.uid } });
+    }
   }
   const clean = Object.fromEntries(Object.entries(data).map(([k, v]) => [k, v ?? ""])) as Record<string, string>;
   if (id) {

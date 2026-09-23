@@ -18,12 +18,12 @@ export default async function Home() {
   const FAQ = home.faq.filter((f) => f.q && f.a).map((f) => [f.q, f.a] as const);
   const waHref = () => waLink(store.whatsapp);
   const [featured, fresh, best, lenses, skuCount, all] = await Promise.all([
-    db.product.findMany({ where: { active: true, isFeatured: true }, include: { variants: { orderBy: { sortOrder: "asc" } } }, take: 8 }),
-    db.product.findMany({ where: { active: true, isNew: true }, include: { variants: { orderBy: { sortOrder: "asc" } } }, orderBy: { createdAt: "desc" }, take: 4 }),
-    db.product.findMany({ where: { active: true, isBestseller: true }, include: { variants: { orderBy: { sortOrder: "asc" } } }, take: 4 }),
+    db.product.findMany({ where: { active: true, isFeatured: true, variants: { some: {} } }, include: { variants: { orderBy: { sortOrder: "asc" } } }, take: 8 }),
+    db.product.findMany({ where: { active: true, isNew: true, variants: { some: {} } }, include: { variants: { orderBy: { sortOrder: "asc" } } }, orderBy: { createdAt: "desc" }, take: 4 }),
+    db.product.findMany({ where: { active: true, isBestseller: true, variants: { some: {} } }, include: { variants: { orderBy: { sortOrder: "asc" } } }, take: 4 }),
     db.lensOption.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
     db.variant.count({ where: { product: { active: true } } }),
-    db.product.findMany({ where: { active: true }, include: { variants: { orderBy: { sortOrder: "asc" } } }, orderBy: [{ isFeatured: "desc" }, { isBestseller: "desc" }, { createdAt: "desc" }] }),
+    db.product.findMany({ where: { active: true, variants: { some: {} } }, include: { variants: { orderBy: { sortOrder: "asc" } } }, orderBy: [{ isFeatured: "desc" }, { isBestseller: "desc" }, { createdAt: "desc" }] }),
   ]);
   const builderProducts = all.map(toDTO).filter((p) => p.variants.length);
   const builderLenses = lenses.map((l) => ({ code: l.code, kind: l.kind, name: l.name, description: l.description, price: l.price }));

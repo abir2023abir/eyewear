@@ -141,7 +141,7 @@ export async function traceFrame(url: string): Promise<Traced> {
     if (comp.length < N * 0.01) continue; // ignore specks; a lens opening is large
     const hm = new Uint8Array(N);
     for (const i of comp) hm[i] = 1;
-    const h = simplify(traceBoundary(hm, W, H, Math.min(...comp), new Uint8Array(N)), 1.1);
+    const h = simplify(traceBoundary(hm, W, H, comp.reduce((a, b) => (b < a ? b : a), comp[0]), new Uint8Array(N)), 1.1);
     if (h.length > 8 && area(h) > 50) holes.push(h);
   }
   return { outer, holes: holes.slice(0, 4), widthPx: W, heightPx: H };

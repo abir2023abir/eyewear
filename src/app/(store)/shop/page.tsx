@@ -47,10 +47,10 @@ export default async function Shop({ searchParams }: { searchParams: Promise<SP>
   const face = one(sp.face);
   const price = one(sp.price);
   const sort = one(sp.sort) || "featured";
-  const page = Math.max(1, parseInt(one(sp.page) || "1") || 1);
+  const page = Math.min(10_000, Math.max(1, parseInt(one(sp.page) || "1") || 1)); // clamped: huge numbers would crash the query
   const PER = 24;
 
-  const and: Prisma.ProductWhereInput[] = [{ active: true }];
+  const and: Prisma.ProductWhereInput[] = [{ active: true, variants: { some: {} } }]; // a frame with no colours is never listed
   if (q) and.push({ OR: [{ name: { contains: q, mode: "insensitive" } }, { modelCode: { contains: q, mode: "insensitive" } }, { shape: { contains: q, mode: "insensitive" } }, { material: { contains: q, mode: "insensitive" } }, { description: { contains: q, mode: "insensitive" } }, { variants: { some: { OR: [{ colorName: { contains: q, mode: "insensitive" } }, { sku: { contains: q, mode: "insensitive" } }] } } }] });
   if (category) and.push({ category });
   if (shapes.length) and.push({ shape: { in: shapes } });

@@ -30,10 +30,10 @@ export default async function ProductPage({ params, searchParams }: Params) {
   const { slug } = await params;
   const { v } = await searchParams;
   const p = await load(slug);
-  if (!p || !p.active) notFound();
+  if (!p || !p.active || !p.variants?.length) notFound(); // a frame with no colours cannot be shown or bought
   const [lenses, related] = await Promise.all([
     db.lensOption.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" }, select: { code: true, kind: true, name: true, description: true, price: true } }),
-    db.product.findMany({ where: { active: true, shape: p.shape, NOT: { id: p.id } }, include: { variants: { orderBy: { sortOrder: "asc" } } }, take: 4 }),
+    db.product.findMany({ where: { active: true, shape: p.shape, NOT: { id: p.id }, variants: { some: {} } }, include: { variants: { orderBy: { sortOrder: "asc" } } }, take: 4 }),
   ]);
   const dto = toDTO(p);
   const { store } = await getSettings();

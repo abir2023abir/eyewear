@@ -9,6 +9,7 @@ export async function GET(req: Request) {
   const items = await db.product.findMany({
     where: {
       active: true,
+      variants: { some: {} },
       ...(ids.length ? { id: { in: ids } } : {}),
       ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { modelCode: { contains: q, mode: "insensitive" } }] } : {}),
     },

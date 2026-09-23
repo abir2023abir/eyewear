@@ -14,6 +14,7 @@ export default function ProductCard({ p }: { p: ProductDTO }) {
   const v = p.variants[vi] ?? p.variants[0];
   const on = wishlist.includes(p.id);
   const img = v?.images?.[view === "front" ? 0 : 1] || (view === "front" ? v?.images?.[0] : undefined);
+  if (!v) return null; // a frame without colours is never shown
 
   return (
     <article className="p-card">

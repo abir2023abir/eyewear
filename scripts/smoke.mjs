@@ -257,6 +257,24 @@ async function main() {
   ok("bad reset token rejected", (await req("/api/auth/reset", { method: "POST", body: { token: "x".repeat(64), password: "ResetPass12345" } })).status === 400);
   for (const p of ["/forgot-password", "/reset-password?token=abc", "/verify-email?token=abc"]) ok(`page ${p}`, (await req(p)).status === 200);
 
+  /* ---------- crash regressions (found in the security review) ---------- */
+  ok("chat ignores an unreadable date instead of crashing", (await req("/api/chat?after=not-a-date&since=2026-01-01", { cookie: buyer })).status === 200);
+  const hugePage = await req("/shop?page=99999999999999999999");
+  ok("shop survives an enormous page number", hugePage.status === 200 && !hugePage.text.includes("Something went wrong"));
+  ok("admin orders survive an enormous page number", (await req("/admin/orders?page=1e30", { cookie: A })).status === 200);
+  {
+    const [pa, pb] = await db.product.findMany({ take: 2, orderBy: { createdAt: "asc" }, include: { variants: true } });
+    const before = pa.variants.length;
+    const clash = await req("/api/admin/products", { method: "POST", cookie: A, body: {
+      id: pa.id, slug: pa.slug, name: pa.name, modelCode: pa.modelCode, category: pa.category, shape: pa.shape, material: pa.material, gender: pa.gender,
+      faceShapes: pa.faceShapes ? pa.faceShapes.split(",") : [], price: pa.price, compareAt: pa.compareAt, description: pa.description,
+      lensWidth: pa.lensWidth, lensHeight: pa.lensHeight, bridge: pa.bridge, templeLength: pa.templeLength, frameWidth: pa.frameWidth, weightGrams: pa.weightGrams,
+      isNew: pa.isNew, isBestseller: pa.isBestseller, isFeatured: pa.isFeatured, active: pa.active, modelUrl: pa.modelUrl, modelTint: pa.modelTint,
+      variants: [{ colorName: "Replacement", colorHex: "#112233", accentHex: null, finish: "solid", sku: pb.variants[0].sku, stock: 1, images: [], modelUrl: null, tryOnImage: null }],
+    } });
+    ok("a failed frame save leaves the frame untouched", clash.status === 409 && (await db.variant.count({ where: { productId: pa.id } })) === before);
+  }
+
   /* ---------- catalogue ---------- */
   ok("inline stock edit", (await req(`/api/admin/products/${product.id}`, { method: "POST", cookie: A, body: { action: "stock", variantId: variant.id, stock: variant.stock } })).status === 200);
   const dup = await req(`/api/admin/products/${product.id}`, { method: "POST", cookie: A, body: { action: "duplicate" } });

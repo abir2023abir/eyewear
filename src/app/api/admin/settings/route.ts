@@ -45,8 +45,8 @@ const SECTIONS = {
   }),
   branding: z.object({ storeLogo: logo, paypalLogo: logo, xtransferLogo: logo, dhlLogo: logo }),
   email: z.object({
-    smtpHost: str(200), smtpPort: z.number().int().min(1).max(65535), smtpUser: str(200), smtpPass: secret, mailFrom: str(200),
-    sellerAlertEmail: z.string().trim().max(200), callmebotPhone: str(40), callmebotKey: secret,
+    smtpHost: str(200), smtpPort: z.number().int().min(1).max(65535), smtpUser: str(200), smtpPass: secret, mailFrom: str(200).refine((v) => !/[\r\n]/.test(v), "No line breaks allowed"),
+    sellerAlertEmail: z.string().trim().max(200).refine((v) => !v || /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(v), "Enter one valid email address"), callmebotPhone: str(40), callmebotKey: secret,
   }),
   marketing: z.object({
     gaId: z.string().trim().regex(/^(G-[A-Z0-9]+)?$/i, "GA4 ID looks like G-XXXXXXX").max(40),

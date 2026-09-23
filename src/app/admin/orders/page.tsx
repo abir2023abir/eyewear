@@ -14,7 +14,7 @@ export default async function Orders({ searchParams }: { searchParams: SP }) {
     ...(status ? { status } : {}),
     ...(q ? { OR: [{ number: { contains: q, mode: "insensitive" } }, { email: { contains: q, mode: "insensitive" } }, { name: { contains: q, mode: "insensitive" } }, { trackingNumber: { contains: q, mode: "insensitive" } }] } : {}),
   };
-  const p = Math.max(1, Number(page) || 1);
+  const p = Math.min(10_000, Math.max(1, Math.floor(Number(page)) || 1)); // clamped: huge numbers would crash the query
   const [orders, total] = await Promise.all([
     db.order.findMany({ where, orderBy: { createdAt: "desc" }, skip: (p - 1) * 30, take: 30, include: { items: { select: { qty: true, prescription: true } } } }),
     db.order.count({ where }),

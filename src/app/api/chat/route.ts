@@ -25,16 +25,18 @@ export async function GET(req: Request) {
   if (!token) return NextResponse.json({ ...base, messages: [], updates: [], unread: 0 });
   const conv = await db.conversation.findUnique({ where: { visitorToken: token } });
   if (!conv) return NextResponse.json({ ...base, messages: [], updates: [], unread: 0 });
-  const afterDate = after ? new Date(after) : null;
-  const sinceDate = since ? new Date(since) : null;
+  // ignore dates the browser sent that can't be read, instead of crashing the chat
+  const parsed = (v: string | null) => { const d = v ? new Date(v) : null; return d && !isNaN(+d) ? d : null; };
+  const afterDate = parsed(after);
+  const sinceDate = parsed(since);
   const messages = await db.message.findMany({
-    where: { conversationId: conv.id, ...(afterDate && !isNaN(+afterDate) ? { createdAt: { gt: afterDate } } : {}) },
+    where: { conversationId: conv.id, ...(afterDate ? { createdAt: { gt: afterDate } } : {}) },
     orderBy: { createdAt: "asc" },
     take: 200,
   });
   // cards (quote / delivery / payment) change after they were delivered — send the changed ones again
   const updates =
-    afterDate && sinceDate && !isNaN(+sinceDate)
+    afterDate && sinceDate
       ? await db.message.findMany({ where: { conversationId: conv.id, createdAt: { lte: afterDate }, updatedAt: { gt: new Date(+sinceDate - 2000) } } })
       : [];
   if (open && conv.unreadForCustomer) await db.conversation.update({ where: { id: conv.id }, data: { unreadForCustomer: 0 } });

@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   const res = event.resource || {};
   try {
     if (type === "CHECKOUT.ORDER.APPROVED") {
-      const order = await db.order.findFirst({ where: { paypalOrderId: res.id } });
+      const order = res.id ? await db.order.findFirst({ where: { paypalOrderId: String(res.id) } }) : null;
       if (order && order.paymentStatus !== "paid") {
         const cap = await capturePaypalOrder(res.id);
         if (cap.status === "COMPLETED" && cap.currency === "USD" && cap.amountCents >= order.total) {
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
       }
     } else if (type === "PAYMENT.CAPTURE.DENIED" || type === "PAYMENT.CAPTURE.REFUNDED" || type === "PAYMENT.CAPTURE.REVERSED") {
       const paypalOrderId = res.supplementary_data?.related_ids?.order_id;
-      const order = (paypalOrderId && (await db.order.findFirst({ where: { paypalOrderId } }))) || (await db.order.findFirst({ where: { paypalCaptureId: res.id } }));
+      const order = (paypalOrderId && (await db.order.findFirst({ where: { paypalOrderId } }))) || (res.id ? await db.order.findFirst({ where: { paypalCaptureId: String(res.id) } }) : null);
       if (order) {
         await db.order.update({ where: { id: order.id }, data: { paymentStatus: type.endsWith("DENIED") ? "unpaid" : "refunded", notes: `${order.notes}\nPayPal: ${type}`.trim() } });
         await alertSeller(`PayPal ${type.split(".").pop()?.toLowerCase()} — ${order.number}`, `PayPal reported ${type} for order ${order.number}.`, `/admin/orders/${order.id}`);

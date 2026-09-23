@@ -83,21 +83,31 @@ export async function POST(req: Request) {
   if (clash) return NextResponse.json({ error: "Another frame already uses this URL slug." }, { status: 409 });
 
   const data = { ...d, slug, faceShapes: faceShapes.join(",") };
-  const product = id ? await db.product.update({ where: { id }, data }) : await db.product.create({ data });
 
-  // sync variants: update existing, create new, delete removed
-  const existing = await db.variant.findMany({ where: { productId: product.id } });
-  const keep = new Set(variants.map((v) => v.id).filter(Boolean));
-  for (const old of existing) if (!keep.has(old.id)) await db.variant.delete({ where: { id: old.id } });
-  const variantIds: string[] = [];
-  for (const [i, v] of variants.entries()) {
-    const sku = (v.sku || `${d.modelCode}-${v.colorName}`).toUpperCase().replace(/[^A-Z0-9-]+/g, "");
-    const skuClash = await db.variant.findFirst({ where: { sku, NOT: v.id ? { id: v.id } : undefined } });
-    if (skuClash) return NextResponse.json({ error: `SKU ${sku} is already used by another frame.`, id: product.id }, { status: 409 });
-    const vd = { colorName: v.colorName, colorHex: v.colorHex, accentHex: v.accentHex, finish: v.accentHex ? v.finish : "solid", sku, stock: v.stock, images: JSON.stringify(v.images), modelUrl: v.modelUrl, tryOnImage: v.tryOnImage, sortOrder: i };
-    if (v.id && existing.some((e) => e.id === v.id)) variantIds.push((await db.variant.update({ where: { id: v.id }, data: vd })).id);
-    else variantIds.push((await db.variant.create({ data: { ...vd, productId: product.id } })).id);
-  }
+  // work out every SKU and check them all BEFORE changing anything, so a clash can never
+  // leave a frame half-saved (for example with its old colours deleted and no new ones)
+  const skus = variants.map((v) => (v.sku || `${d.modelCode}-${v.colorName}`).toUpperCase().replace(/[^A-Z0-9-]+/g, ""));
+  const dup = skus.find((x, i) => skus.indexOf(x) !== i);
+  if (dup) return NextResponse.json({ error: `Two colours would share the SKU ${dup}. Give each colour a different name or SKU.` }, { status: 409 });
+  if (skus.some((x) => !x)) return NextResponse.json({ error: "Each colour needs a name or SKU." }, { status: 400 });
+  const clashSku = await db.variant.findFirst({ where: { sku: { in: skus }, ...(id ? { NOT: { productId: id } } : {}) }, select: { sku: true } });
+  if (clashSku) return NextResponse.json({ error: `SKU ${clashSku.sku} is already used by another frame.` }, { status: 409 });
+
+  // the frame and all its colours are saved together: either everything is saved, or nothing is
+  const { product, variantIds } = await db.$transaction(async (tx) => {
+    const product = id ? await tx.product.update({ where: { id }, data }) : await tx.product.create({ data });
+    const existing = await tx.variant.findMany({ where: { productId: product.id }, select: { id: true } });
+    const keep = new Set(variants.map((v) => v.id).filter(Boolean));
+    const removed = existing.filter((e) => !keep.has(e.id)).map((e) => e.id);
+    if (removed.length) await tx.variant.deleteMany({ where: { id: { in: removed } } });
+    const variantIds: string[] = [];
+    for (const [i, v] of variants.entries()) {
+      const vd = { colorName: v.colorName, colorHex: v.colorHex, accentHex: v.accentHex, finish: v.accentHex ? v.finish : "solid", sku: skus[i], stock: v.stock, images: JSON.stringify(v.images), modelUrl: v.modelUrl, tryOnImage: v.tryOnImage, sortOrder: i };
+      if (v.id && existing.some((e) => e.id === v.id)) variantIds.push((await tx.variant.update({ where: { id: v.id }, data: vd })).id);
+      else variantIds.push((await tx.variant.create({ data: { ...vd, productId: product.id } })).id);
+    }
+    return { product, variantIds };
+  }, { timeout: 20_000 });
   revalidatePath("/");
   revalidatePath(`/product/${product.slug}`);
   revalidatePath("/shop");
