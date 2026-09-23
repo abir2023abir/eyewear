@@ -439,6 +439,21 @@ export default function ProductEditor({ initial }: { initial: (ProductDTO & { ac
                       <input type="checkbox" className="mt-1" checked={p.modelTint} onChange={(e) => set("modelTint", e.target.checked)} />
                       <span><b>Paint this model in each colour</b><span className="block muted text-xs mt-0.5">Leave ticked so one model covers every colour. Untick if the model already has the right colours and textures baked in.</span></span>
                     </label>
+                    {p.modelTint ? (
+                      <div className="text-xs">
+                        <div className="muted mb-1.5">Customers will see the model in these colours (from step 4). If one looks wrong, fix that colour’s style and colours in step 4:</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {p.variants.map((x, i) => (
+                            <span key={i} className="flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-white pl-1 pr-2 py-0.5">
+                              <span className="w-4 h-4 rounded-full border border-black/10" style={{ background: swatchBg(x) }} />
+                              {x.colorName || `Colour ${i + 1}`}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs muted">Every colour will show the model exactly as it was made (its own colours and texture).</p>
+                    )}
                   </>
                 ) : (
                   <label className="btn btn-outline w-fit cursor-pointer">

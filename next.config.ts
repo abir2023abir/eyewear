@@ -5,7 +5,7 @@ import type { NextConfig } from "next";
 const CSP = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://www.paypal.com https://*.paypal.com https://www.paypalobjects.com https://www.googletagmanager.com https://cdn.jsdelivr.net",
-  "connect-src 'self' https://*.paypal.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://cdn.jsdelivr.net https://storage.googleapis.com",
+  "connect-src 'self' blob: data: https://*.paypal.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://cdn.jsdelivr.net https://storage.googleapis.com",
   "img-src 'self' data: blob: https://*.paypal.com https://*.paypalobjects.com https://www.googletagmanager.com https://*.google-analytics.com https://static.xtransfer.com https://www.dhl.com",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",

@@ -248,8 +248,11 @@ function paintModel(root: THREE.Object3D, tint: Tint, keep: Set<THREE.Material>)
   const fade = tint.finish === "gradient" && tint.accent ? tint.accent : null;
   const top = new THREE.Color(tint.color);
   const bottom = new THREE.Color(fade || tint.accent || tint.color);
+  root.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(root);
   const made: THREE.Material[] = [];
+  const twoTone = !fade && !!tint.accent;
+  const brow = new THREE.Color(tint.accent || tint.color);
   root.traverse((o) => {
     const m = o as THREE.Mesh;
     if (!m.isMesh || keep.has(m.material as THREE.Material)) return;
@@ -262,28 +265,26 @@ function paintModel(root: THREE.Object3D, tint: Tint, keep: Set<THREE.Material>)
       clearcoat: 0.7,
       clearcoatRoughness: 0.2,
     });
-    if (fade) {
-      // colour runs top → bottom across the whole model, like a real gradient acetate
+    if (fade || twoTone) {
+      // colour each point of the model by its height:
+      //   gradient → main colour at the top fading into the second colour at the bottom
+      //   two-tone → the top bar (brow) in the second colour, the rest in the main colour
       const pos = m.geometry.attributes.position as THREE.BufferAttribute;
       const cols = new Float32Array(pos.count * 3);
       const c = new THREE.Color();
       const v = new THREE.Vector3();
+      const h = Math.max(box.max.y - box.min.y, 1e-6);
       for (let i = 0; i < pos.count; i++) {
         v.fromBufferAttribute(pos, i);
         m.localToWorld(v);
-        const t = (box.max.y - v.y) / Math.max(box.max.y - box.min.y, 1e-6);
-        c.copy(top).lerp(bottom, Math.min(1, Math.max(0, (t - 0.2) / 0.65)));
+        const t = (box.max.y - v.y) / h; // 0 = top, 1 = bottom
+        if (fade) c.copy(top).lerp(bottom, Math.min(1, Math.max(0, (t - 0.2) / 0.65)));
+        else c.copy(t < 0.3 ? brow : top);
         cols[i * 3] = c.r; cols[i * 3 + 1] = c.g; cols[i * 3 + 2] = c.b;
       }
       m.geometry.setAttribute("color", new THREE.BufferAttribute(cols, 3));
       mat.vertexColors = true;
       mat.color.set("#ffffff");
-    } else if (tint.accent && tint.finish !== "gradient") {
-      // two-tone: the upper half (brow) takes the second colour
-      const mid = (box.max.y + box.min.y) / 2 + (box.max.y - box.min.y) * 0.1;
-      const v = new THREE.Vector3();
-      m.getWorldPosition(v);
-      if (v.y > mid) mat.color.set(tint.accent);
     }
     m.material = mat;
     made.push(mat);
