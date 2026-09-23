@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 // Only the third parties the store actually uses may load code or be contacted:
@@ -22,6 +23,17 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@prisma/client", "nodemailer", "pdfkit"],
   // pdfkit reads its built-in fonts from disk at runtime; make sure Vercel bundles them
   outputFileTracingIncludes: { "/**": ["./node_modules/pdfkit/js/data/**"] },
+  // the 3D-model shrinker (@gltf-transform) mentions Node's fs/path for its Node-only reader;
+  // browsers never use that code, so leave those modules out of the browser bundle
+  webpack: (config, { isServer, webpack }) => {
+    if (!isServer) {
+      const empty = path.resolve(process.cwd(), "src/lib/empty-module.js");
+      config.plugins.push(new webpack.NormalModuleReplacementPlugin(/^node:(fs|path)$/, (res: { request: string }) => {
+        res.request = empty;
+      }));
+    }
+    return config;
+  },
   poweredByHeader: false,
   experimental: { serverActions: { bodySizeLimit: "25mb" } },
   async headers() {

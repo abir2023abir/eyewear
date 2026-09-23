@@ -2,6 +2,7 @@
 // or loads an uploaded .glb. Front of the frame faces +z, temples run toward -z, +x = wearer's left.
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { FrameSpec, lensCenterX, lensOutline, offsetOutline, rimThickness } from "./frame-geometry";
 
 export type LensKind = "clear" | "ar" | "bluecut" | "photosun" | "sun";
@@ -306,7 +307,7 @@ function paintModel(root: THREE.Object3D, tint: Tint, keep: Set<THREE.Material>)
 
 /** Loads an uploaded glTF-binary model, normalises it to the product's frame width (mm) and optionally tints it. */
 export async function loadGlbFrame(url: string, spec: FrameSpec, lens: LensKind, tint?: Tint | null): Promise<BuiltFrame> {
-  const gltf = await new GLTFLoader().loadAsync(url);
+  const gltf = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(url); // models shrunk on upload use meshopt compression
   const root = gltf.scene;
   const box = new THREE.Box3().setFromObject(root);
   const size = box.getSize(new THREE.Vector3());

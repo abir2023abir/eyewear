@@ -56,7 +56,15 @@ export default function ProductEditor({ initial }: { initial: (ProductDTO & { ac
   const num = (k: keyof P) => (e: React.ChangeEvent<HTMLInputElement>) => set(k, Number(e.target.value) as never);
 
   const upload = async (original: File, kind: "image" | "model") => {
-    const file = await prepareUpload(original); // shrinks big photos; refuses files over 4 MB
+    let source = original;
+    if (kind === "model") {
+      if (original.size > 150 * 1024 * 1024) throw new Error("This 3D file is over 150 MB — please export a smaller version from Tripo or your designer.");
+      const { optimizeGlb } = await import("@/lib/glb-optimize");
+      const r = await optimizeGlb(original, (t) => setMsg({ ok: true, text: t }));
+      if (r.after < r.before) setMsg({ ok: true, text: `Model made smaller for the website: ${(r.before / 1048576).toFixed(1)} MB → ${(r.after / 1048576).toFixed(1)} MB. Uploading…` });
+      source = r.file;
+    }
+    const file = await prepareUpload(source); // shrinks big photos; refuses files over 4 MB
     const fd = new FormData();
     fd.append("file", file);
     fd.append("kind", kind);
@@ -392,7 +400,7 @@ export default function ProductEditor({ initial }: { initial: (ProductDTO & { ac
                           if (!/\.glb$/i.test(f.name)) return setMsg({ ok: false, text: "Please choose a .glb file." });
                           const i = vi;
                           setUploading("model");
-                          try { const url = await upload(f, "model"); setV(i, { modelUrl: url }); } catch (err: any) { setMsg({ ok: false, text: err.message }); }
+                          try { const url = await upload(f, "model"); setV(i, { modelUrl: url }); setMsg({ ok: true, text: "3D model uploaded ✓ — press “Save frame” to keep it." }); } catch (err: any) { setMsg({ ok: false, text: err.message }); }
                           setUploading("");
                         }} />
                       </label>
@@ -421,7 +429,7 @@ export default function ProductEditor({ initial }: { initial: (ProductDTO & { ac
                 </ol>
                 <p className="mt-3">Upload a <b>.glb</b> here only if a 3D designer or your factory made a model of this frame. One model covers <b>all colours</b> — it is painted to match each swatch.</p>
                 <ul className="text-xs muted list-disc pl-5 grid gap-0.5 mt-2">
-                  <li><b>.glb</b> only (glTF binary), up to 4 MB.</li>
+                  <li><b>.glb</b> only (glTF binary). Big files (up to 150 MB) are made smaller automatically before upload, so they load fast for customers.</li>
                   <li>Front of the glasses facing forward, temple arms going backwards.</li>
                   <li>Any size is fine — it is resized to the “Total width” from step 2.</li>
                   <li>Name the lens parts “lens” so the lens colour previews still work.</li>
@@ -464,7 +472,7 @@ export default function ProductEditor({ initial }: { initial: (ProductDTO & { ac
                       if (!file) return;
                       if (!/\.glb$/i.test(file.name)) return setMsg({ ok: false, text: "Please choose a .glb file." });
                       setUploading("pmodel");
-                      try { set("modelUrl", await upload(file, "model")); } catch (err: any) { setMsg({ ok: false, text: err.message }); }
+                      try { set("modelUrl", await upload(file, "model")); setMsg({ ok: true, text: "3D model uploaded ✓ — press “Save frame” to keep it." }); } catch (err: any) { setMsg({ ok: false, text: err.message }); }
                       setUploading("");
                     }} />
                   </label>
