@@ -65,7 +65,7 @@ export default function OrderBuilder({ products, lenses }: { products: ProductDT
     for (const { p, v } of lines) {
       addToCart({
         variantId: v.id, productId: p.id, slug: p.slug, name: `${p.name} ${p.modelCode}`, colorName: v.colorName,
-        colorHex: v.colorHex, accentHex: v.accentHex, finish: v.finish, shape: p.shape,
+        colorHex: v.colorHex, image: v.images[0], accentHex: v.accentHex, finish: v.finish, shape: p.shape,
         spec: { lensWidth: p.lensWidth, lensHeight: p.lensHeight, bridge: p.bridge, templeLength: p.templeLength, frameWidth: p.frameWidth, material: p.material },
         sun: p.category === "sunglasses", unitPrice: p.price, qty: 1,
         lensCode, lensName: lensOpt?.name || "Frame only", lensPrice: lensEach, coatings, coatingNames: coatOpts.map((c) => c.name),

@@ -31,6 +31,7 @@ export type CartItem = {
   name: string;
   colorName: string;
   colorHex: string;
+  image?: string; // product photo for the cart thumbnail
   accentHex?: string | null;
   finish?: string;
   shape: string;

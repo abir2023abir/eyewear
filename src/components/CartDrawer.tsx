@@ -33,7 +33,7 @@ export default function CartDrawer() {
           {cart.map((c) => (
             <div key={c.key} className="flex gap-3 border-b border-[var(--line)] pb-4">
               <div className="w-24 h-16 rounded-xl bg-[var(--sky-2)] grid place-items-center shrink-0">
-                <FrameArt spec={{ ...c.spec, shape: c.shape }} color={c.colorHex} accent={c.accentHex} finish={c.finish} sun={c.sun} className="w-full" />
+                <FrameArt photo={c.image} spec={{ ...c.spec, shape: c.shape }} color={c.colorHex} accent={c.accentHex} finish={c.finish} sun={c.sun} className="w-full" />
               </div>
               <div className="flex-1 min-w-0 text-sm">
                 <Link href={`/product/${c.slug}`} className="font-bold hover:text-[var(--blue)]" onClick={() => setCartOpen(false)}>{c.name}</Link>

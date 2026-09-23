@@ -1,6 +1,7 @@
 import { FrameSpec, lensCenterX, lensOutline, offsetOutline, rimThickness, toPath } from "@/lib/frame-geometry";
 
 type Props = {
+  photo?: string | null; // real product photo: shown instead of the drawing
   spec: FrameSpec;
   color: string;
   accent?: string | null;
@@ -23,7 +24,9 @@ function shade(hex: string, amt: number) {
 }
 
 /** Generated product artwork (used until real photos are uploaded in the admin panel). */
-export default function FrameArt({ spec, color, accent: accentIn, finish, view = "front", sun, className, title, annotate }: Props) {
+export default function FrameArt({ spec, color, accent: accentIn, finish, view = "front", sun, className, title, annotate, photo }: Props) {
+  // eslint-disable-next-line @next/next/no-img-element
+  if (photo) return <img src={photo} alt={title || ""} className={`${className || ""} object-contain`} loading="lazy" />;
   const fade = finish === "gradient" && accentIn ? accentIn : null;
   const accent = fade ? null : accentIn;
   const id = `g${Math.abs(hashCode(spec.shape + color + (accentIn || "") + (fade ? "f" : "") + view + (sun ? 1 : 0)))}`;

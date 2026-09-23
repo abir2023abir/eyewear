@@ -222,7 +222,7 @@ function Checkout() {
               ))
             : cart.map((c) => (
                 <div key={c.key} className="flex gap-3 items-center">
-                  <div className="w-16 h-11 rounded-lg bg-[var(--sky-2)] grid place-items-center shrink-0"><FrameArt spec={{ ...c.spec, shape: c.shape }} color={c.colorHex} accent={c.accentHex} finish={c.finish} sun={c.sun} className="w-full" /></div>
+                  <div className="w-16 h-11 rounded-lg bg-[var(--sky-2)] grid place-items-center shrink-0"><FrameArt photo={c.image} spec={{ ...c.spec, shape: c.shape }} color={c.colorHex} accent={c.accentHex} finish={c.finish} sun={c.sun} className="w-full" /></div>
                   <div className="flex-1 min-w-0"><div className="font-semibold truncate">{c.qty}× {c.name}</div><div className="muted text-xs truncate">{c.colorName}{c.coatingNames.length ? ` · ${c.coatingNames.join(", ")}` : c.lensName !== "Frame only" ? ` · ${c.lensName}` : " · Frame only"}</div></div>
                   <div className="font-semibold">{usd((c.unitPrice + c.lensPrice) * c.qty)}</div>
                 </div>

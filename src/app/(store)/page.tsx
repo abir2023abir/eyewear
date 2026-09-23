@@ -123,7 +123,7 @@ export default async function Home() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {liveModels.map((p) => (
                 <Link key={p.id} href={`/try-on?p=${p.slug}`} className="rounded-2xl bg-white p-3 text-[var(--ink)] hover:scale-[1.03] transition">
-                  <FrameArt spec={p} color={p.variants[0].colorHex} accent={p.variants[0].accentHex} finish={p.variants[0].finish} className="w-full" />
+                  <FrameArt photo={p.variants[0].images[0]} spec={p} color={p.variants[0].colorHex} accent={p.variants[0].accentHex} finish={p.variants[0].finish} className="w-full" />
                   <div className="text-[13px] font-bold mt-1">{p.name} {p.modelCode}</div>
                   <div className="text-[12px] muted">{p.variants[0].colorName} · {usd(p.price)}</div>
                 </Link>

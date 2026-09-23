@@ -28,7 +28,7 @@ export default function CartPage() {
             {cart.map((c) => (
               <div key={c.key} className="card-flat p-4 flex gap-4 items-center">
                 <div className="w-32 h-24 rounded-xl bg-[var(--sky-2)] grid place-items-center shrink-0">
-                  <FrameArt spec={{ ...c.spec, shape: c.shape }} color={c.colorHex} accent={c.accentHex} finish={c.finish} sun={c.sun} className="w-[90%]" />
+                  <FrameArt photo={c.image} spec={{ ...c.spec, shape: c.shape }} color={c.colorHex} accent={c.accentHex} finish={c.finish} sun={c.sun} className="w-[90%]" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <Link href={`/product/${c.slug}`} className="font-display text-xl font-semibold text-[var(--navy)]">{c.name}</Link>

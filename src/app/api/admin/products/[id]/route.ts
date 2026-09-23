@@ -8,6 +8,8 @@ const schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("stock"), variantId: z.string().max(40), stock: z.number().int().min(0).max(100000) }),
   z.object({ action: z.literal("duplicate") }),
   z.object({ action: z.literal("delete"), confirm: z.literal("DELETE") }),
+  // studio photos created in the admin for a colour that has no photos yet
+  z.object({ action: z.literal("images"), variantId: z.string().max(40), images: z.array(z.string().regex(/^\/api\/files\/[a-z0-9]+$/)).min(1).max(12) }),
 ]);
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -22,6 +24,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const product = await db.product.findUnique({ where: { id }, include: { variants: { orderBy: { sortOrder: "asc" } } } });
   if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const a = p.data;
+
+  if (a.action === "images") {
+    const v = product.variants.find((x) => x.id === a.variantId);
+    if (!v) return NextResponse.json({ error: "Colour not found" }, { status: 404 });
+    await db.variant.update({ where: { id: v.id }, data: { images: JSON.stringify(a.images) } });
+    revalidatePath("/");
+    revalidatePath("/shop");
+    revalidatePath(`/product/${product.slug}`);
+    return NextResponse.json({ ok: true });
+  }
 
   if (a.action === "stock") {
     const v = product.variants.find((x) => x.id === a.variantId);

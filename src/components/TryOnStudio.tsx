@@ -647,7 +647,7 @@ export default function TryOnStudio({ products, initialSlug, initialVariant }: {
             <div className="grid grid-cols-3 gap-2 mt-3">
               {suggestions.map(({ p, fit: f }) => (
                 <button key={p.id} onClick={() => pick(p)} className={`rounded-xl border p-2 text-left hover:border-[var(--blue)] ${p.id === product.id ? "border-[var(--blue)] bg-[var(--sky-2)]" : "border-[var(--line)]"}`}>
-                  <FrameArt spec={p} color={p.variants[0].colorHex} accent={p.variants[0].accentHex} finish={p.variants[0].finish} className="w-full" />
+                  <FrameArt photo={p.variants[0].images[0]} spec={p} color={p.variants[0].colorHex} accent={p.variants[0].accentHex} finish={p.variants[0].finish} className="w-full" />
                   <div className="text-[12px] font-bold truncate">{p.name}</div>
                   {f.tone === "ok" && <div className="text-[10px] font-bold text-[var(--ok)]">Fits you</div>}
                 </button>
@@ -664,7 +664,7 @@ export default function TryOnStudio({ products, initialSlug, initialVariant }: {
               const f = metrics ? fitVerdict(p.frameWidth, metrics.faceWidthMm) : null;
               return (
                 <button key={p.id} onClick={() => pick(p)} className={`rounded-xl border p-2 text-left hover:border-[var(--blue)] ${p.id === product.id ? "border-[var(--blue)] bg-[var(--sky-2)]" : "border-[var(--line)]"}`}>
-                  <FrameArt spec={p} color={p.variants[0].colorHex} accent={p.variants[0].accentHex} finish={p.variants[0].finish} sun={p.category === "sunglasses"} className="w-full" />
+                  <FrameArt photo={p.variants[0].images[0]} spec={p} color={p.variants[0].colorHex} accent={p.variants[0].accentHex} finish={p.variants[0].finish} sun={p.category === "sunglasses"} className="w-full" />
                   <div className="text-[12px] font-bold truncate">{p.name} {p.modelCode}</div>
                   {f?.tone === "ok" && <div className="text-[10px] font-bold text-[var(--ok)]">Fits you</div>}
                 </button>

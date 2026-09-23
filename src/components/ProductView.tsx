@@ -73,7 +73,7 @@ export default function ProductView({ p, lenses, initialVariant }: { p: ProductD
     if (mode === "upload" && !upload) return setErr("Please upload your prescription photo, or choose another option.");
     addToCart({
       variantId: v.id, productId: p.id, slug: p.slug, name: `${p.name} ${p.modelCode}`, colorName: v.colorName,
-      colorHex: v.colorHex, accentHex: v.accentHex, finish: v.finish, shape: p.shape,
+      colorHex: v.colorHex, image: v.images[0], accentHex: v.accentHex, finish: v.finish, shape: p.shape,
       spec: { lensWidth: p.lensWidth, lensHeight: p.lensHeight, bridge: p.bridge, templeLength: p.templeLength, frameWidth: p.frameWidth, material: p.material },
       sun, unitPrice: p.price, qty, lensCode: lens, lensName: lensOpt?.name || "Frame only", lensPrice,
       coatings, coatingNames: coatOpts.map((c) => c.name),

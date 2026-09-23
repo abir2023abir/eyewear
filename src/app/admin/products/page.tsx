@@ -5,6 +5,15 @@ import FrameArt from "@/components/FrameArt";
 import StockCell from "./StockCell";
 import RowActions from "./RowActions";
 
+function firstPhoto(json?: string): string | null {
+  try {
+    const a = JSON.parse(json || "[]");
+    return Array.isArray(a) && typeof a[0] === "string" ? a[0] : null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function Products({ searchParams }: { searchParams: Promise<{ q?: string; show?: string }> }) {
   const { q = "", show = "" } = await searchParams;
   const products = await db.product.findMany({
@@ -23,7 +32,10 @@ export default async function Products({ searchParams }: { searchParams: Promise
           <h1 className="h-section !text-3xl">Frames & stock</h1>
           <p className="muted text-sm">{products.length} frames · {skus} SKUs</p>
         </div>
-        <Link href="/admin/products/new" className="btn btn-primary">+ Add frame</Link>
+        <div className="flex gap-2 flex-wrap">
+          <Link href="/admin/products/studio" className="btn btn-outline">📸 Create studio photos</Link>
+          <Link href="/admin/products/new" className="btn btn-primary">+ Add frame</Link>
+        </div>
       </div>
       <form className="flex gap-2 flex-wrap">
         <input name="q" defaultValue={q} placeholder="Search name, model, SKU…" className="input !w-72" />
@@ -42,7 +54,7 @@ export default async function Products({ searchParams }: { searchParams: Promise
               const out = p.variants.filter((v) => v.stock === 0).length;
               return (
                 <tr key={p.id} className={p.active ? "" : "opacity-50"}>
-                  <td className="w-24"><FrameArt spec={p} color={p.variants[0]?.colorHex || "#222"} accent={p.variants[0]?.accentHex} finish={p.variants[0]?.finish} className="w-20" /></td>
+                  <td className="w-24"><FrameArt photo={firstPhoto(p.variants[0]?.images)} spec={p} color={p.variants[0]?.colorHex || "#222"} accent={p.variants[0]?.accentHex} finish={p.variants[0]?.finish} className="w-20" /></td>
                   <td><Link href={`/admin/products/${p.id}`} className="font-bold text-[var(--blue)]">{p.name} {p.modelCode}</Link><div className="text-xs muted capitalize">{p.shape} · {p.material} · {p.gender}</div></td>
                   <td className="capitalize">{p.category}</td>
                   <td className="font-semibold">{usd(p.price)}</td>
