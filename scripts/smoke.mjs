@@ -275,6 +275,19 @@ async function main() {
     ok("a failed frame save leaves the frame untouched", clash.status === 409 && (await db.variant.count({ where: { productId: pa.id } })) === before);
   }
 
+  /* ---------- homepage hero photo ---------- */
+  {
+    const hf = new FormData(); hf.append("file", png(), "hero.png"); hf.append("kind", "image");
+    const hu = await req("/api/admin/upload", { method: "POST", cookie: A, form: hf });
+    const homeNow = (await req("/api/admin/settings", { cookie: A })).json.settings.home;
+    ok("hero photo must be an uploaded image", (await req("/api/admin/settings", { method: "POST", cookie: A, body: { section: "home", data: { ...homeNow, heroImage: "https://evil.example/x.png" } } })).status === 400);
+    const setHero = await req("/api/admin/settings", { method: "POST", cookie: A, body: { section: "home", data: { ...homeNow, heroImage: hu.json?.url } } });
+    ok("hero photo shows on the homepage", setHero.status === 200 && (await req("/")).text.includes(hu.json?.url));
+    await req("/api/admin/settings", { method: "POST", cookie: A, body: { section: "home", data: { ...homeNow, heroImage: "" } } });
+    const hid = hu.json?.url?.split("/").pop();
+    if (hid) await db.upload.delete({ where: { id: hid } }).catch(() => {});
+  }
+
   /* ---------- catalogue ---------- */
   ok("inline stock edit", (await req(`/api/admin/products/${product.id}`, { method: "POST", cookie: A, body: { action: "stock", variantId: variant.id, stock: variant.stock } })).status === 200);
   const dup = await req(`/api/admin/products/${product.id}`, { method: "POST", cookie: A, body: { action: "duplicate" } });

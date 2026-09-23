@@ -33,6 +33,8 @@ export default async function Home() {
   const lensCards = lensTypes.length ? lensTypes : upgrades;
   const minLens = Math.min(...lensTypes.filter((l) => l.price > 0).map((l) => l.price));
   const hero = featured[0] ? toDTO(featured[0]) : null;
+  // real photo first: the one uploaded for the hero, else the featured frame's own product photo
+  const heroPhoto = home.heroImage || hero?.variants[0]?.images?.[0] || "";
   const minPrice = Math.min(...featured.map((p) => p.price), 2900);
   const liveModels = featured.slice(0, 5).map(toDTO);
 
@@ -67,8 +69,11 @@ export default async function Home() {
           </div>
           <div className="order-1 lg:order-2 relative">
             <div className="hero-card aspect-[5/4] grid place-items-center p-10">
-              {hero && (
-                <FrameArt spec={hero} color={hero.variants[0].colorHex} accent={hero.variants[0].accentHex} finish={hero.variants[0].finish} view="front" className="w-[88%] drop-shadow-[0_30px_30px_rgba(10,36,99,.25)]" title={hero.name} />
+              {heroPhoto ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={heroPhoto} alt={hero ? `${hero.name} ${hero.modelCode}` : store.name} className="w-[92%] max-h-full object-contain drop-shadow-[0_30px_30px_rgba(10,36,99,.18)]" fetchPriority="high" />
+              ) : (
+                hero && <FrameArt spec={hero} color={hero.variants[0].colorHex} accent={hero.variants[0].accentHex} finish={hero.variants[0].finish} view="front" className="w-[88%] drop-shadow-[0_30px_30px_rgba(10,36,99,.25)]" title={hero.name} />
               )}
               {topTier && topTier.off > 0 && (
                 <div className="float-badge top-6 left-6">

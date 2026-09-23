@@ -21,6 +21,7 @@ export type PublicSettings = {
     heroTitleEnd: string;
     heroSubtitle: string;
     heroBadge: string;
+    heroImage: string; // uploaded photo for the homepage hero ("" = use the first featured frame)
     faq: FaqItem[];
   };
   pricing: { bundleTiers: BundleTier[]; shippingNote: string };

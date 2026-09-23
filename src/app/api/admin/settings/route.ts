@@ -22,6 +22,7 @@ const SECTIONS = {
   home: z.object({
     ticker: z.array(str(120)).max(12),
     heroTitle: str(120), heroHighlight: str(60), heroTitleEnd: str(80), heroSubtitle: str(400), heroBadge: str(80),
+    heroImage: z.string().trim().max(200).refine((v) => v === "" || /^\/api\/files\/[a-z0-9]+$/.test(v), "Upload the hero photo here"),
     faq: z.array(z.object({ q: str(200), a: str(2000) })).max(30),
   }),
   pricing: z.object({

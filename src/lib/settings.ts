@@ -32,6 +32,7 @@ export function defaultSettings(): Settings {
       heroTitleEnd: "in the world.",
       heroSubtitle: "Featherlight frames with spring hinges, prescription lenses cut to order, and a 3D try-on studio that shows you exactly how each pair looks and fits — before you buy.",
       heroBadge: "New season · shipping worldwide",
+      heroImage: "",
       faq: [
         { q: "Can I get prescription lenses?", a: "Yes. Every optical frame can be fitted with single-vision lenses cut to your prescription. Enter SPH, CYL, AXIS and PD for each eye at checkout, upload a photo of your prescription, or send it to us after ordering — we never cut lenses until your prescription is confirmed." },
         { q: "How does the virtual try-on work?", a: "Open the try-on studio and allow camera access. The frame locks onto your face automatically and follows your head in 3D. It also measures your face width to show whether a frame fits, and detects your face shape to suggest styles. Everything runs on your own device — no images are uploaded or stored." },

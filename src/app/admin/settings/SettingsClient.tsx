@@ -104,6 +104,13 @@ export default function SettingsClient({ initial, secretState, myEmail }: { init
               <F l="Title ending"><input className="input" value={s.home.heroTitleEnd} onChange={(e) => set("home", { heroTitleEnd: e.target.value })} /></F>
               <F l="Hero text" wide><textarea className="textarea" rows={3} value={s.home.heroSubtitle} onChange={(e) => set("home", { heroSubtitle: e.target.value })} /></F>
             </Grid>
+            <LogoField
+              label="Hero photo (big picture at the top of the homepage)"
+              hint="A real photo of your best frame, wide or square, on a plain light background. Leave empty to show the first featured frame’s photo automatically."
+              value={s.home.heroImage}
+              onChange={(v) => set("home", { heroImage: v })}
+              onError={(t) => setMsg({ ok: false, text: t })}
+            />
             <div>
               <div className="label">Scrolling offer bar (one line each)</div>
               <textarea className="textarea" rows={5} value={s.home.ticker.join("\n")} onChange={(e) => set("home", { ticker: e.target.value.split("\n").slice(0, 12) })} />
