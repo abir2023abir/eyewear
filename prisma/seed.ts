@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { faceShapesFor } from "../src/lib/frame-geometry";
+import { addPhotoFrames } from "./photo-frames";
 
 const db = new PrismaClient();
 
@@ -127,8 +128,13 @@ async function main() {
   const existing = await db.product.count();
   if (existing > 0) {
     console.log(`Products already present (${existing}) — skipping catalogue seed.`);
-    return;
+  } else {
+    await seedCatalogue();
   }
+  await addPhotoFrames(db);
+}
+
+async function seedCatalogue() {
 
   let skuCount = 0;
   for (let i = 0; i < NAMES.length; i++) {

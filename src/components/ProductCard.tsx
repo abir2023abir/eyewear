@@ -13,25 +13,25 @@ export default function ProductCard({ p }: { p: ProductDTO }) {
   const { wishlist, toggleWish } = useStore();
   const v = p.variants[vi] ?? p.variants[0];
   const on = wishlist.includes(p.id);
-  const img = v?.images?.[view === "front" ? 0 : 1] || (view === "front" ? v?.images?.[0] : undefined);
+  const img = v?.images?.[view === "front" ? 0 : 1] || v?.images?.[0];
   if (!v) return null; // a frame without colours is never shown
 
   return (
     <article className="p-card">
       <div className="p-media">
-        <span className="p-sku">{v?.sku}</span>
-        <button className={`p-heart ${on ? "on" : ""}`} onClick={() => toggleWish(p.id)} aria-label={on ? "Remove from wishlist" : "Add to wishlist"}>
+        <span className="p-sku z-10">{v?.sku}</span>
+        <button className={`p-heart z-10 ${on ? "on" : ""}`} onClick={() => toggleWish(p.id)} aria-label={on ? "Remove from wishlist" : "Add to wishlist"}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill={on ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8"><path d="M12 20s-7-4.4-9.2-9A5 5 0 0 1 12 6a5 5 0 0 1 9.2 5c-2.2 4.6-9.2 9-9.2 9Z" /></svg>
         </button>
-        <Link href={`/product/${p.slug}?v=${v?.id}`} className="w-[82%] block" aria-label={`${p.name} ${p.modelCode}`}>
+        <Link href={`/product/${p.slug}?v=${v?.id}`} className={img ? "absolute inset-0 block" : "w-[82%] block"} aria-label={`${p.name} ${p.modelCode}`}>
           {img ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={img} alt={`${p.name} in ${v.colorName}`} className="w-full h-auto object-contain" loading="lazy" />
+            <img src={img} alt={`${p.name} in ${v.colorName}`} className="w-full h-full object-cover" loading="lazy" />
           ) : (
             <FrameArt spec={p} color={v.colorHex} accent={v.accentHex} finish={v.finish} view={view} sun={p.category === "sunglasses"} className="w-full drop-shadow-[0_14px_14px_rgba(10,36,99,.18)]" title={`${p.name} in ${v.colorName}`} />
           )}
         </Link>
-        <div className="absolute bottom-3 right-3 seg">
+        <div className={`absolute bottom-3 right-3 seg ${v?.images?.length === 1 ? "hidden" : ""}`}>
           <button className={view === "front" ? "on" : ""} onClick={() => setView("front")}>{v?.images?.length ? "Folded" : "Front"}</button>
           <button className={view === "side" ? "on" : ""} onClick={() => setView("side")}>{v?.images?.length ? "Open" : "Angle"}</button>
         </div>

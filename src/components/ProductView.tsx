@@ -94,7 +94,7 @@ export default function ProductView({ p, lenses, initialVariant }: { p: ProductD
             <Viewer360 spec={spec} source={sourceFor(p, v)} lens={preview} />
           ) : typeof tab === "number" ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={photos[tab]} alt={`${p.name} ${v.colorName} photo ${tab + 1}`} className="w-full h-full object-contain" />
+            <img src={photos[tab]} alt={`${p.name} ${v.colorName} photo ${tab + 1}`} className="w-full h-full object-contain mix-blend-multiply" />
           ) : (
             <div className="w-full h-full grid place-items-center p-10">
               <FrameArt spec={p} color={v.colorHex} accent={v.accentHex} finish={v.finish} view={tab} sun={sun} className="w-[90%] drop-shadow-[0_30px_30px_rgba(10,36,99,.22)]" title={`${p.name} ${v.colorName}`} />
@@ -103,7 +103,7 @@ export default function ProductView({ p, lenses, initialVariant }: { p: ProductD
         </div>
         <div className="flex gap-2 mt-3 flex-wrap">
           {photos.map((_, i) => (
-            <button key={i} onClick={() => setTab(i)} className={`chip ${tab === i ? "!bg-[var(--navy)] !text-white !border-[var(--navy)]" : ""}`}>{PHOTO_LABELS[i] || `Photo ${i + 1}`}</button>
+            <button key={i} onClick={() => setTab(i)} className={`chip ${tab === i ? "!bg-[var(--navy)] !text-white !border-[var(--navy)]" : ""}`}>{photos.length === 1 ? "Photo" : PHOTO_LABELS[i] || `Photo ${i + 1}`}</button>
           ))}
           {(photos.length ? ([["3d", "360° 3D"]] as const) : ([["3d", "360° 3D"], ["front", "Front"], ["side", "Angle"]] as const)).map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} className={`chip ${tab === k ? "!bg-[var(--navy)] !text-white !border-[var(--navy)]" : ""}`}>

@@ -71,7 +71,7 @@ export default async function Home() {
             <div className="hero-card aspect-[5/4] grid place-items-center p-10">
               {heroPhoto ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={heroPhoto} alt={hero ? `${hero.name} ${hero.modelCode}` : store.name} className="w-[92%] max-h-full object-contain drop-shadow-[0_30px_30px_rgba(10,36,99,.18)]" fetchPriority="high" />
+                <img src={heroPhoto} alt={hero ? `${hero.name} ${hero.modelCode}` : store.name} className="w-[92%] max-h-full object-contain mix-blend-multiply rounded-2xl" fetchPriority="high" />
               ) : (
                 hero && <FrameArt spec={hero} color={hero.variants[0].colorHex} accent={hero.variants[0].accentHex} finish={hero.variants[0].finish} view="front" className="w-[88%] drop-shadow-[0_30px_30px_rgba(10,36,99,.25)]" title={hero.name} />
               )}

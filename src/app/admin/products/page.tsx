@@ -32,10 +32,7 @@ export default async function Products({ searchParams }: { searchParams: Promise
           <h1 className="h-section !text-3xl">Frames & stock</h1>
           <p className="muted text-sm">{products.length} frames · {skus} SKUs</p>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <Link href="/admin/products/studio" className="btn btn-outline">📸 Create studio photos</Link>
-          <Link href="/admin/products/new" className="btn btn-primary">+ Add frame</Link>
-        </div>
+        <Link href="/admin/products/new" className="btn btn-primary">+ Add frame</Link>
       </div>
       <form className="flex gap-2 flex-wrap">
         <input name="q" defaultValue={q} placeholder="Search name, model, SKU…" className="input !w-72" />
