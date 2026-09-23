@@ -50,6 +50,22 @@ function toShape(pts: [number, number][], mirror: boolean) {
   return s;
 }
 
+/**
+ * How much a plastic frame reflects, based on its colour. A glossy clear-coat reflecting a bright room
+ * washes dark colours out to grey, so dark frames get softer reflections and stay truly dark,
+ * while light colours keep their shine.
+ */
+function plasticLook(hex: string) {
+  const c = new THREE.Color(hex);
+  const lum = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b; // 0 = black, 1 = white (linear)
+  return {
+    roughness: 0.42 - lum * 0.12,
+    clearcoat: 0.25 + lum * 0.45,
+    clearcoatRoughness: 0.3,
+    envMapIntensity: 0.3 + lum * 0.8,
+  };
+}
+
 /** finish "gradient": the front fades from color (top) to accent (bottom); otherwise accent = browline top bar. */
 export function buildFrame(spec: FrameSpec, color: string, accentIn?: string | null, lens: LensKind = "clear", finish?: string): BuiltFrame {
   const group = new THREE.Group();
@@ -58,10 +74,7 @@ export function buildFrame(spec: FrameSpec, color: string, accentIn?: string | n
   const metal = spec.material === "Metal" || spec.material === "Titanium";
   const frameMat = new THREE.MeshPhysicalMaterial({
     color,
-    roughness: metal ? 0.25 : 0.32,
-    metalness: metal ? 0.9 : 0.05,
-    clearcoat: metal ? 0.2 : 0.8,
-    clearcoatRoughness: 0.2,
+    ...(metal ? { roughness: 0.25, metalness: 0.9, clearcoat: 0.2, clearcoatRoughness: 0.2 } : { metalness: 0.05, ...plasticLook(color) }),
     transparent: /c9d6e3/i.test(color),
     opacity: /c9d6e3/i.test(color) ? 0.55 : 1,
   });
@@ -69,7 +82,7 @@ export function buildFrame(spec: FrameSpec, color: string, accentIn?: string | n
   if (accent) {
     accentMat.color = new THREE.Color(accent);
     accentMat.metalness = 0.05;
-    accentMat.roughness = 0.32;
+    Object.assign(accentMat, plasticLook(accent));
   }
   const lensMat = makeLensMaterial(lens);
   const disposables: { dispose(): void }[] = [frameMat, lensMat];
@@ -257,13 +270,12 @@ function paintModel(root: THREE.Object3D, tint: Tint, keep: Set<THREE.Material>)
     const m = o as THREE.Mesh;
     if (!m.isMesh || keep.has(m.material as THREE.Material)) return;
     const old = m.material as THREE.MeshStandardMaterial;
+    const metalModel = (old?.metalness ?? 0) > 0.5;
     const mat = new THREE.MeshPhysicalMaterial({
       color: top,
       map: null,
-      roughness: 0.3,
-      metalness: old?.metalness != null ? Math.min(0.9, old.metalness) : 0.05,
-      clearcoat: 0.7,
-      clearcoatRoughness: 0.2,
+      metalness: metalModel ? Math.min(0.9, old.metalness) : 0.05,
+      ...(metalModel ? { roughness: 0.3, clearcoat: 0.3, clearcoatRoughness: 0.2 } : plasticLook(tint.color)),
     });
     if (fade || twoTone) {
       // colour each point of the model by its height:
@@ -481,7 +493,7 @@ export async function buildTracedFrame(url: string, spec: FrameSpec, lens: LensK
 
   // temple arms in the frame's own colour, taken from the photo itself
   const edge = averageColour(tex.image as CanvasImageSource, traced.widthPx, traced.heightPx);
-  const sideMat = new THREE.MeshPhysicalMaterial({ color: edge, roughness: 0.35, metalness: metal ? 0.7 : 0.05, clearcoat: 0.5 });
+  const sideMat = new THREE.MeshPhysicalMaterial({ color: edge, metalness: metal ? 0.7 : 0.05, ...(metal ? { roughness: 0.35, clearcoat: 0.3 } : plasticLook("#" + edge.getHexString())) });
   const outerX = Math.max(...outer.map((p) => Math.abs(p[0])));
   const hingeY = topMm - (topMm - botMm) * 0.28;
   const temples = templeMaker(spec, metal, sideMat, outerX - 1, hingeY);
