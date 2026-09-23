@@ -73,7 +73,7 @@ export function PaymentChooser({ number, token, total, methods, chosen, status, 
         ))}
       </div>
 
-      {method === "paypal" && !readOnly && <PayPalButtons number={number} token={token} onDone={onDone} />}
+      {method === "paypal" && !readOnly && <PayPalButtons number={number} token={token} total={total} onDone={onDone} />}
       {method === "xtransfer" && !readOnly && bank && <BankTransfer number={number} token={token} total={total} bank={bank} onDone={onDone} />}
 
       <div className="flex items-center justify-center gap-2 text-[11.5px] muted">
@@ -83,7 +83,7 @@ export function PaymentChooser({ number, token, total, methods, chosen, status, 
   );
 }
 
-function PayPalButtons({ number, token, onDone }: { number: string; token: string; onDone?: () => void }) {
+function PayPalButtons({ number, token, total, onDone }: { number: string; token: string; total: number; onDone?: () => void }) {
   const box = useRef<HTMLDivElement>(null);
   const { payments } = useSite();
   const [err, setErr] = useState("");
@@ -119,6 +119,7 @@ function PayPalButtons({ number, token, onDone }: { number: string; token: strin
             setBusy(false);
             if (r.status === 402 && j.restart && actions?.restart) return actions.restart();
             if (!r.ok || r.status === 202) return setErr(j.error || "Payment could not be captured. You have not been charged.");
+            (window as unknown as { reportPurchase?: (n: string, v: number) => void }).reportPurchase?.(number, total / 100); // Google Ads / GA4 sale
             onDone?.();
           },
           onCancel: () => setErr("Payment cancelled — you can try again whenever you’re ready."),

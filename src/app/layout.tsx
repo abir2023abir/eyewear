@@ -29,7 +29,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" className={`${display.variable} ${body.variable}`}>
       <body>
         <Providers settings={toPublic(settings)}>{children}</Providers>
-        <Analytics gaId={settings.marketing.gaId} adsId={settings.marketing.adsId} />
+        <Analytics gaId={settings.marketing.gaId} adsId={settings.marketing.adsId} adsLabel={settings.marketing.adsPurchaseLabel} />
       </body>
     </html>
   );
